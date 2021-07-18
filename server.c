@@ -6,6 +6,8 @@
 
 #include "util.h"
 
+int testchange;
+
 int notused;    //TODO: variabile da spostare successivamente in qualche libreria
 void* Workers(void* argument);
 
