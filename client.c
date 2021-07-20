@@ -6,17 +6,23 @@
 
 #include "util.h"
 #include "interface.h"
+#include "commandList.h"
 
-//TODO: manca la gestione della lista su cui andare a mettere in coda le richieste del client
-
+//-------------- STRUTTURE PER SALVARE I DATI ---------------//
 //variabile che serve per abilitare e disabilitare le stampe chiamando l'opzione -p
-int flag_stampa = 0;
+int flags = 0;
+//-------------------------------------------------------------//
+
+
+
 
 int main(int argc, char* argv[]){
     char opt;
 
-    char *farg;
+    char *farg = NULL;
     int checkH = 0, checkP = 0, checkF = 0;
+
+    node* lis = NULL;
 
     while((opt = getopt(argc, argv, "hpf:w:W:r:R:d:D:t:c:l:u:")) != -1){
         switch(opt){
@@ -24,7 +30,7 @@ int main(int argc, char* argv[]){
                 if(checkH == 0){
                     if(DEBUGCLIENT) printf("Opzione -h\n");
                     checkH = 1;
-                    //aggiungere alla lista
+                    addList(&lis, "h", NULL);
                 }
                 else{
                     printf("L'opzione -h non puo' essere ripetuta\n");
@@ -36,7 +42,7 @@ int main(int argc, char* argv[]){
                 if (checkP == 0) {
                     if(DEBUGCLIENT) printf("Opzione -p\n");
                     checkP = 1;
-                    //aggiungere alla lista
+                    addList(&lis, "p", NULL);
                 }else{
                     printf("L'opzione -p non puo' essere ripetuta\n");
                 }
@@ -47,7 +53,7 @@ int main(int argc, char* argv[]){
                 if (checkF == 0) {
                     checkF = 1;
                     farg = optarg;
-                    //aggiungere alla lista
+                    addList(&lis, "f", farg);
                     if(DEBUGCLIENT) printf("Opzione -f con argomento : %s\n",farg);
                 }else{
                     printf("L'opzione -f non puo' essere ripetuta\n");
@@ -88,5 +94,41 @@ int main(int argc, char* argv[]){
         }
     }
 
+    char *temp = NULL;
+
+    //esaurisco le richieste che possono esser chiamate una sola volta
+    if(searchCommand(&lis, "h", &temp) == 1){
+        //TODO: stampare la lista di tutte le opzioni accettate
+
+        //libero la lista
+        freeList(&lis);
+
+        //TODO: liberare anche tutte le altre dichiarazioni!?
+        return 0;
+    }
+
+    if(searchCommand(&lis, "p", &temp) == 1){
+        flags = 1;
+        printf("Stampe abilitate con successo\n");
+    }
+
+    if(searchCommand(&lis, "f", &temp) == 1){
+        struct timespec t;
+        clock_gettime(CLOCK_REALTIME, &t);
+        t.tv_sec = t.tv_sec + 60;
+
+        if(openConnection(farg, 1000, t) == -1){
+             if(flags == 1){
+                 printf("Operazione : -f (connessione) File : %s Esito : negativo\n", farg);
+             }
+             perror("Errore apertura connessione");
+         }
+         else{
+             printf("Connessione aperta\n");
+             if(flags == 1){
+                 printf("Operazione : -f (connessione) File : %s Esito : positivo\n",farg);
+             }
+         }
+    }
     return 0;
 }
