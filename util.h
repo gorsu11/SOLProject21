@@ -5,6 +5,8 @@
 //  Created by Gianluca Orsucci on 05/07/21.
 //
 
+
+//TODO: importare qui tutte le librerie
 #ifndef util_h
 #define util_h
 
@@ -49,10 +51,21 @@
 
 #define UNIX_PATH_MAX 104 /* man 7 unix */
 
+
+//-------------- DEFINE DEI DEBUG CHE UTILIZZO PER SEMPLIFICARE E PER POTER STAMPARE ---------------//
 //variabile globale che se impostata mi permette di effettuare debugging
-#if !defined(DEBUG)
-#define DEBUG 0
+#if !defined(DEBUGAPI)
+#define DEBUGAPI 0
 #endif
+
+#if !defined(DEBUGSERVER)
+#define DEBUGSERVER 0
+#endif
+
+#if !defined(DEBUGCLIENT)
+#define DEBUGCLIENT 0
+#endif
+//-------------------------------------------------------------//
 
 
 #if !defined(BUFSIZE)
