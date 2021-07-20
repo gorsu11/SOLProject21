@@ -4,40 +4,71 @@
 #include <unistd.h>
 #include <pthread.h>
 
+//-------------- CHIAMATE ALLE LIBRERIE ---------------//
 #include "util.h"
+#include "parsingFile.c"
+//-------------------------------------------------------------//
 
 int notused;    //TODO: variabile da spostare successivamente in qualche libreria
+
+
+//-------------- DICHIARAZIONE DELLE FUNZIONI ---------------//
 void* Workers(void* argument);
+//-------------------------------------------------------------//
+
+
+//-------------- STRUTTURE PER SALVARE I DATI ---------------//
+config* configuration;
+//-------------------------------------------------------------//
+
+
+
 
 int main(int argc, char* argv[]){
-  if(argc != 2){
-    fprintf(stderr, "Error data in %s\n", argv[0]);
-    return -1;
-  }
+    if(argc != 2){
+        fprintf(stderr, "Error data in %s\n", argv[0]);
+        return -1;
+    }
 
-  //CHIAMATA DELLE FUNZIONI PER PARSARE IL FILE DATO IN INPUT
-  //TODO: creare libreria per il parsing
+    //CHIAMATA DELLE FUNZIONI PER PARSARE IL FILE DATO IN INPUT
+    //-------------------- PARSING FILE --------------------//
+    if (argc != 2) {
+        fprintf(stderr, "Error data in %s\n", argv[0]);
+        return -1;
+    }
 
-  //CREO PIPE E THREADS PER IMPLEMENTARE IL MASTER-WORKER
-  //-------------------- CREAZIONE PIPE ---------------------//
-  int comunication[2];    //per comunicare tra master e worker
-  SYSCALL_EXIT("pipe", notused, pipe(comunication), "pipe", "");
+    //se qualcosa non va a buon fine prende i valori di default
+    //TODO: potrei anche utilizzare le define per vedere se è NULL, da rivedere
+    if((configuration = getConfig(argv[1])) == NULL){
+        configuration = default_configuration();
+        printf("Presi i valori di default\n");
+    }
 
-  //-------------------- CREAZIONE THREAD WORKERS --------------------//
+    if(DEBUG) stampa(configuration);
+    //------------------------------------------------------------//
 
-  int temp = 5;       //numero provvisorio da sostituire quando parserò il file
-  pthread_t *master;
-  CHECKNULL(master, malloc(temp * sizeof(pthread_t)), "malloc pthread_t");
 
-  if(DEBUG) printf("Creazione dei %d thread Worker\n", temp);
+    //CREO PIPE E THREADS PER IMPLEMENTARE IL MASTER-WORKER
+    //-------------------- CREAZIONE PIPE ---------------------//
+    int comunication[2];    //per comunicare tra master e worker
+    SYSCALL_EXIT("pipe", notused, pipe(comunication), "pipe", "");
 
-  int err;
-  for(int i=0; i<temp; i++){
-    SYSCALL_PTHREAD(err, pthread_create(&master[i], NULL, Workers, (void*) (&comunication[1])), "pthread_create pool");
-  }
+    //-------------------- CREAZIONE THREAD WORKERS --------------------//
 
-  if(DEBUG) printf("Creazione andata a buon fine\n");
-  //-------------------------------------------------------------//
+    int temp = 5;       //numero provvisorio da sostituire quando parserò il file
+    pthread_t *master;
+    CHECKNULL(master, malloc(temp * sizeof(pthread_t)), "malloc pthread_t");
 
-  //-------------------- CREAZIONE SOCKET --------------------//
+    if(DEBUG) printf("Creazione dei %d thread Worker\n", temp);
+
+    int err;
+    for(int i=0; i<temp; i++){
+        SYSCALL_PTHREAD(err, pthread_create(&master[i], NULL, Workers, (void*) (&comunication[1])), "pthread_create pool");
+    }
+
+    if(DEBUG) printf("Creazione andata a buon fine\n");
+    //-------------------------------------------------------------//
+
+    //-------------------- CREAZIONE SOCKET --------------------//
+
 }
