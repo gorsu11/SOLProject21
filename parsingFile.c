@@ -18,7 +18,7 @@ config* getConfig(const char* string){
     FILE *file;
 
     config *configuration; //Variabile che ospita la configurazione
-    CHECKNULL(configuration, malloc(sizeof(config)), "malloc", "configuration");
+    CHECKNULL(configuration, malloc(sizeof(config)), "malloc configuration");
     char str[200];
     char arg [LEN];
     char val [LEN];
@@ -96,7 +96,7 @@ config* default_configuration(){
     configuration->num_thread = 1;
     configuration->size_Buff = 10000;
     CHECKNULL(configuration->socket_name, malloc(BUFSIZE), "malloc");
-    strcmp(configuration->socket_name, SOCK);
+    strcmp(configuration->socket_name, SOCKNAME);
     return configuration;
 }
 
