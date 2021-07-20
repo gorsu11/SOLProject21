@@ -3,6 +3,21 @@
 
 #include "util.h"
 
+//-------------- DEFINE UTILIZZATI ---------------//
+#define LEN 1000
+#define LENSOCK 1024
+
+//------------------------------------------------//
+
+//-------------- DICHIARAZIONE DELLE VARIABILI ---------------//
+int sockfd;
+int connection_socket = 0;
+int notused;
+char response[LEN];
+char socket_name[LENSOCK];
+//-------------------------------------------------------------//
+
+
 //int openConnection(const char* sockname, int msec, const struct timespec abstime);
 int openConnection(const char* sockname, int msec, const struct timespec abstime);
  /*
@@ -93,5 +108,20 @@ int removeFile(const char* pathname);
 Rimuove il file cancellandolo dal file storage server. L’operazione fallisce se il file non è in stato locked,
 o è in stato locked da parte di un processo client diverso da chi effettua la removeFile.
 */
+
+
+//-------------- DICHIARAZIONE DI FUNZIONI AUSILIARIE ---------------//
+
+//0 se sono uguali, 1 se a>b, -1 se a<b
+int compare_time (struct timespec a, struct timespec b) {
+    clock_gettime(CLOCK_REALTIME,&a);
+    if (a.tv_sec == b.tv_sec) {
+        if (a.tv_nsec > b.tv_nsec) return 1;
+        else if (a.tv_nsec == b.tv_nsec) return 0;
+        else return -1;
+    }else if (a.tv_sec > b.tv_sec) return 1;
+    else return -1;
+}
+//-------------------------------------------------------------//
 
 #endif /* interface_h */
