@@ -55,14 +55,13 @@ int main(int argc, char* argv[]){
 
     //-------------------- CREAZIONE THREAD WORKERS --------------------//
 
-    int temp = 5;       //numero provvisorio da sostituire quando parserò il file
     pthread_t *master;
-    CHECKNULL(master, malloc(temp * sizeof(pthread_t)), "malloc pthread_t");
+    CHECKNULL(master, malloc(configuration->num_thread * sizeof(pthread_t)), "malloc pthread_t");
 
-    if(DEBUG) printf("Creazione dei %d thread Worker\n", temp);
+    if(DEBUG) printf("Creazione dei %d thread Worker\n", configuration->num_thread);
 
     int err;
-    for(int i=0; i<temp; i++){
+    for(int i=0; i<configuration->num_thread; i++){
         SYSCALL_PTHREAD(err, pthread_create(&master[i], NULL, Workers, (void*) (&comunication[1])), "pthread_create pool");
     }
 
