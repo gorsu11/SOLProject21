@@ -3,6 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/select.h>
 
 //-------------- CHIAMATE ALLE LIBRERIE ---------------//
 #include "util.h"
@@ -12,13 +16,17 @@
 int notused;    //TODO: variabile da spostare successivamente in qualche libreria
 
 
-//-------------- DICHIARAZIONE DELLE FUNZIONI ---------------//
-void* Workers(void* argument);
+//-------------- STRUTTURE PER SALVARE I DATI ---------------//
+config* configuration;
 //-------------------------------------------------------------//
 
 
-//-------------- STRUTTURE PER SALVARE I DATI ---------------//
-config* configuration;
+//-------------- DICHIARAZIONE DELLE FUNZIONI ---------------//
+void* Workers(void* argument);
+
+void cleanup() {
+    unlink(configuration->socket_name);
+}
 //-------------------------------------------------------------//
 
 
@@ -69,5 +77,46 @@ int main(int argc, char* argv[]){
     //-------------------------------------------------------------//
 
     //-------------------- CREAZIONE SOCKET --------------------//
+
+    // se qualcosa va storto ....
+    atexit(cleanup);
+
+    // cancello il socket file se esiste
+    cleanup();
+
+    int listenfd;
+
+    // setto l'indirizzo
+    struct sockaddr_un serv_addr;
+    strncpy(serv_addr.sun_path, configuration->socket_name, UNIX_PATH_MAX);
+
+    serv_addr.sun_family = AF_UNIX;
+
+    // creo il socket
+    SYSCALL_EXIT("socket", listenfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
+
+    // assegno l'indirizzo al socket
+    SYSCALL_EXIT("bind", notused, bind(listenfd, (struct sockaddr*)&serv_addr,sizeof(serv_addr)), "bind", "");
+
+    // setto il socket in modalita' passiva e definisco un n. massimo di connessioni pendenti
+    SYSCALL_EXIT("listen", notused, listen(listenfd, SOMAXCONN), "listen", "");
+
+
+    //TODO: manca parte comunicazione con pipe
+    printf("Listen for clients ...\n");
+
+    while(1){
+        //TODO: esecuzione dei comandi!?
+        break;
+    }
+
+    printf("Closing server ...\n");
+
+
+    SYSCALL_EXIT("close", notused, close(listenfd), "close", "");
+    freeConfig(configuration);
+
+    if(DEBUGSERVER) printf("Connessione chiusa");
+    return 0;
 
 }
