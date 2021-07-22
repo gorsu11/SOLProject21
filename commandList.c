@@ -48,7 +48,7 @@ void printList (node * list) {
     }
 }
 
-int containCMD (node ** list, char * cmd, char ** arg) {
+int searchCommand (node ** list, char * cmd, char ** arg) {
 
     node * curr = *list;
     node * prec = NULL;
