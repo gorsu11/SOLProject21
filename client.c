@@ -19,9 +19,9 @@ int flags = 0;
 int main(int argc, char* argv[]){
     char opt;
 
-    int time;
+    int time = 0;
 
-    char *farg = NULL, *Darg = NULL, *darg = NULL, *targ = NULL;
+    char *farg = NULL, *Darg = NULL, *darg = NULL, *targ = NULL, *warg, *Warg, *rarg, *Rarg, *larg, *uarg, *carg;
     int checkH = 0, checkP = 0, checkF = 0;
 
     node* lis = NULL;
@@ -64,13 +64,33 @@ int main(int argc, char* argv[]){
                 break;
 
             case 'w':
+                warg = optarg;
+                if(DEBUGCLIENT) printf("Opzione -w con argomento : %s\n",warg);
+                addList(&lis, "w", warg);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'W':
+                Warg = optarg;
+                if(DEBUGCLIENT) printf("Opzione -W con argomento : %s\n",Warg);
+                addList(&lis, "W", Warg);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'r':
+                rarg = optarg;
+                if(DEBUG) printf("Opzione -r con argomento %s\n",rarg);
+                addList(&lis,"r", rarg);
+                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'R':
+                Rarg = optarg;
+                if(DEBUG) printf("Opzione -R con argomento %s\n",Rarg);
+                addList(&lis,"R", Rarg);
+                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'd':
                 darg = optarg;
                 if(DEBUGCLIENT) printf("Opzione -d con argomento : %s\n",darg);
@@ -93,11 +113,26 @@ int main(int argc, char* argv[]){
                 break;
 
             case 'l':
+                larg = optarg;
+                if(DEBUG) printf("Opzione -l con argomento %s\n",larg);
+                addList(&lis,"l", larg);
+                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'u':
+                uarg = optarg;
+                if(DEBUG) printf("Opzione -u con argomento %s\n",uarg);
+                addList(&lis,"u", uarg);
+                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'c':
+                carg=optarg;
+                if(DEBUG) printf("Opzione -c con argomento %s\n",carg);
+                addList(&lis,"c",carg);
+                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case '?':
                 printf("l'opzione '-%c' non e' gestita\n", optopt);
                 fprintf (stderr,"%s -h per vedere la lista delle operazioni supportate\n",argv[0]);
@@ -165,5 +200,51 @@ int main(int argc, char* argv[]){
             if (flags == 1) printf("Operazione : -t (ritardo)\nTempo : %d\nEsito : positivo\n",time);
         }
     }
+
+    //per vedere se mi toglie i casi che hanno una sola occorrenza
+    if(DEBUGCLIENT) printList(lis);
+
+    node* curr = lis;
+
+    //gestisco i comandi mancanti (-w -W -r -R -l -u -c)
+
+    while(curr != NULL){
+        usleep(1000* time);
+
+        if (strcmp(curr->cmd, "w") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "W") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "r") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "R") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "l") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "u") == 0) {
+            <#statements#>
+        }
+
+        if (strcmp(curr->cmd, "c") == 0) {
+            <#statements#>
+        }
+
+        curr = curr->next;
+        if(DEBUGCLIENT) printList(lis);
+    }
+
+    freeList(&lis);
+    closeConnection(farg);
+
     return 0;
 }
