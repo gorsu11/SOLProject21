@@ -19,7 +19,9 @@ int flags = 0;
 int main(int argc, char* argv[]){
     char opt;
 
-    char *farg = NULL;
+    int time;
+
+    char *farg = NULL, *Darg = NULL, *darg = NULL, *targ = NULL;
     int checkH = 0, checkP = 0, checkF = 0;
 
     node* lis = NULL;
@@ -70,11 +72,26 @@ int main(int argc, char* argv[]){
             case 'R':
                 break;
             case 'd':
+                darg = optarg;
+                if(DEBUGCLIENT) printf("Opzione -d con argomento : %s\n",darg);
+                addList(&lis, "d", darg);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'D':
+                Darg = optarg;
+                if(DEBUGCLIENT) printf("Opzione -D con argomento : %s\n",Darg);
+                addList(&lis, "D", Darg);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 't':
+                targ = optarg;
+                if(DEBUGCLIENT) printf("Opzione -f con argomento : %s\n",targ);
+                addList(&lis, "t", targ);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
+
             case 'l':
                 break;
             case 'u':
@@ -119,16 +136,34 @@ int main(int argc, char* argv[]){
 
         if(openConnection(farg, 1000, t) == -1){
              if(flags == 1){
-                 printf("Operazione : -f (connessione) File : %s Esito : negativo\n", farg);
+                 printf("Operazione : -f (connessione)\nFile : %s\nEsito : negativo\n", farg);
              }
              perror("Errore apertura connessione");
          }
          else{
              printf("Connessione aperta\n");
              if(flags == 1){
-                 printf("Operazione : -f (connessione) File : %s Esito : positivo\n",farg);
+                 printf("Operazione : -f (connessione)\nFile : %s\nEsito : positivo\n",farg);
              }
          }
+    }
+
+    if(searchCommand(&lis, "d", &temp) == 1){
+        if (flags == 1) printf("Operazione : -d (salva file)\nDirectory : %s\nEsito : positivo\n",darg);
+    }
+
+    if(searchCommand(&lis, "D", &temp) == 1){
+        if (flags == 1) printf("Operazione : -D (scrivi file rimossi)\nDirectory : %s\nEsito : positivo\n",Darg);
+    }
+
+    if(searchCommand(&lis, "t", &temp) == 1){
+        if((time = (int) isNumberParser(targ)) == -1){
+            if (flags == 1) printf("Operazione : -t (ritardo)\nTempo : %s\nEsito : negativo\n",targ);
+            printf("L'opzione -t richiede un numero come argomento\n");
+        }
+        else{
+            if (flags == 1) printf("Operazione : -t (ritardo)\nTempo : %d\nEsito : positivo\n",time);
+        }
     }
     return 0;
 }
