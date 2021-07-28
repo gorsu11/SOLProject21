@@ -287,6 +287,12 @@ int main(int argc, char* argv[]){
         SYSCALL_PTHREAD(e,pthread_join(master[i],NULL),"Errore join thread");
     }
 
+    //TODO: stampare le statistiche alla chiusura del server
+    //numero di file massimo memorizzato nel server
+    //dimensione massima in Mbytes raggiunta dal file storage
+    //numero di volte in cui l’algoritmo di rimpiazzamento della cache è stato eseguito per selezionare uno o più file “vittima”
+    //lista dei file contenuti nello storage al momento della chiusura del server.
+
     SYSCALL_EXIT("close", notused, close(listenfd), "close", "");
     freeConfig(configuration);
 
