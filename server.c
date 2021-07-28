@@ -16,12 +16,24 @@
 //-------------------------------------------------------------//
 
 int notused;    //TODO: variabile da spostare successivamente in qualche libreria
-//#define LEN 1000
 
-//-------------- STRUTTURE PER SALVARE I DATI E DICHIARAZIONI DI VARIABILI GLOBALI ---------------//
+//-------------- STRUTTURE PER SALVARE I DATI ---------------//
+//struttura della lista per i clienti
+typedef struct nodo{
+    int data;
+    struct nodo* next;
+} node;
+//-------------------------------------------------------------//
+
+
+//-------------- DICHIARAZIONI DI VARIABILI GLOBALI ---------------//
 config* configuration;
+node* coda;                     //per comunicare tra master e workers
 
 volatile sig_atomic_t term;
+
+pthread_mutex_t mtx_lis = PTHREAD_MUTEX_INITIALIZER;            //mutex sulla lista dei client
+pthread_cond_t cond_lis = PTHREAD_COND_INITIALIZER;             //cond da utilizzare se la lista non è vuota
 //-------------------------------------------------------------//
 
 
@@ -29,6 +41,11 @@ volatile sig_atomic_t term;
 void* Workers(void* argument);
 static void signal_handler(int num_signal);
 int max_index(fd_set set, int fdmax);
+
+void inserisciTesta (node ** list, int data);
+int rimuoviCoda (node ** list);
+
+void execute (char * request, int cfd,int pfd);
 
 void cleanup() {
     unlink(configuration->socket_name);
@@ -252,7 +269,8 @@ int main(int argc, char* argv[]){
 
                 else{
                     //socket client pronto per la read, inserisco il socket client in coda
-                    //TODO: inserire client in coda, del tipo inserisci(Coda_client, &fd)
+                    inserisciTesta(&coda, fd);
+                    FD_CLR(fd,&set);
                 }
             }
         }
@@ -265,6 +283,9 @@ int main(int argc, char* argv[]){
 
     printf("Closing server ...\n");
 
+    for (int i=0;i<configuration->num_thread;i++) {
+        SYSCALL_PTHREAD(e,pthread_join(master[i],NULL),"Errore join thread");
+    }
 
     SYSCALL_EXIT("close", notused, close(listenfd), "close", "");
     freeConfig(configuration);
@@ -274,6 +295,44 @@ int main(int argc, char* argv[]){
 
 }
 
+void* Workers(void* argument){
+    if(DEBUGSERVER) printf("Entra\n");
+
+    int pfd = *((int*) argument);
+    int cfd;
+
+    while(1){
+        char request[LEN];
+        memset(request, 0, LEN);
+
+        if((cfd = rimuoviCoda(&coda)) == -1){       //prende l'elemento dalla lista
+            break;
+        }
+
+        //SERVO IL CLIENT
+        int len, fine;               //end è il flag che utilizzo per dire al master quando il client termina
+        if((len = readn(cfd, request, LEN)) == 0){
+            fine = -1;
+            SYSCALL_EXIT("writen", notused, writen(pfd, &cfd, sizeof(cfd)), "thread writen", "");
+            SYSCALL_EXIT("writen", notused, writen(pfd, &fine, sizeof(fine)), "thread writen", "");
+        }
+        else if((len = readn(cfd, request, LEN)) == -1){
+            fine = -1;
+            SYSCALL_EXIT("writen", notused, writen(pfd, &cfd, sizeof(cfd)), "thread writen", "");
+            SYSCALL_EXIT("writen", notused, writen(pfd, &fine, sizeof(fine)), "thread writen", "");
+        }
+        else{
+            execute(request, cfd, pfd);
+        }
+    }
+    if(DEBUGSERVER) printf("Chiusura Worker\n");
+    fflush(stdout);
+
+    return 0;
+}
+
+
+//------------ FUNZIONI AUSILIARIE --------------//
 //SIGINT E SIGQUIT TERMINANO SUBITO (GENERA STATISTICHE)
 //SIGHUP INVECE NON ACCETTA NUOVI CLIENT, ASPETTA CHE I CLIENT COLLEGATI CHIUDANO CONNESSIONE
 static void signal_handler(int num_signal){
@@ -294,4 +353,115 @@ int max_index(fd_set set, int fdmax){
         }
     }
     return -1;
+}
+//------------------------------------------------------------//
+
+//---------- FUNZIONI PER GESTIRE IL SERVER ----------//
+//INSERIMENTO IN TESTA
+void inserisciTesta (node ** list, int data) {
+    int err;
+    //ACQUISISCO LA LOCK
+    SYSCALL_PTHREAD(err,pthread_mutex_lock(&mtx_lis),"Lock coda");
+    node * new;
+    CHECKNULL(new, malloc (sizeof(node)), "malloc node* new");
+    new->data = data;
+    new->next = *list;
+
+    //INSERISCI IN TESTA
+    *list = new;
+    //INVIO LA SIGNAL E RILASCIO LA LOCK
+    SYSCALL_PTHREAD(err,pthread_cond_signal(&cond_lis),"Signal coda");
+    pthread_mutex_unlock(&mtx_lis);
+}
+
+//RIMOZIONE IN CODA
+int rimuoviCoda (node ** list) {
+    int err;
+    //ACQUISISCO LA LOCK E ASPETTO CHE SI VERIFICHI LA CONDIZIONE SE AL MOMENTO NON È VERIFICATA
+    SYSCALL_PTHREAD(err,pthread_mutex_lock(&mtx_lis),"Lock coda");
+    while (coda==NULL) {
+        pthread_cond_wait(&cond_lis,&mtx_lis);
+    }
+    int data;
+    node * curr = *list;
+    node * prec = NULL;
+    while (curr->next != NULL) {
+        prec = curr;
+        curr = curr->next;
+    }
+    data = curr->data;
+
+    //RIMUOVO L'ELEMENTO
+    if (prec == NULL) {
+        free(curr);
+        *list = NULL;
+    }else{
+        prec->next = NULL;
+        free(curr);
+    }
+
+    //RILASCIO LOCK
+    pthread_mutex_unlock(&mtx_lis);
+    return data;
+}
+//------------------------------------------------------------//
+
+
+void execute (char * request, int cfd,int pfd){
+    char response[LEN];
+    memset(response, 0, LEN);
+
+    char* token = NULL;
+
+    if(!request){
+        token = strtok(request, ",");
+    }
+
+    if(!token){
+        if(strcmp(token, "openFile") == 0){
+
+        }
+
+        else if(strcmp(token, "closeFile") == 0){
+
+        }
+
+        else if(strcmp(token, "removeFile") == 0){
+
+        }
+
+        else if(strcmp(token, "writeFile") == 0){
+
+        }
+
+        else if(strcmp(token, "appendToFile") == 0){
+
+        }
+
+        else if(strcmp(token, "readFile") == 0){
+
+        }
+
+        else if(strcmp(token, "readNFile") == 0){
+
+        }
+
+        else if(strcmp(token, "lockFile") == 0){
+
+        }
+
+        else if(strcmp(token, "unlockFile") == 0){
+
+        }
+
+        else{
+
+        }
+    }
+
+    else{
+        SYSCALL_EXIT("writen", notused, writen(pfd, &cfd, sizeof(cfd)), "thread: pipe writen", "");
+        int fine = -1;
+        SYSCALL_EXIT("writen", notused, writen(pfd, &fine, sizeof(fine)), "thread: pipe writen", "");
+    }
 }
