@@ -73,10 +73,89 @@ int closeConnection(const char* sockname){
 }
 
 int openFile(const char* pathname, int flags){
+    if(DEBUGAPI) fprintf(stdout, "Apertura file...\n");
+
+    if(!pathname){
+        errno = EINVAL;
+        return -1;
+    }
+
+    //piu o meno sono simili
+    if(sockfd == -1 || connection_socket == 0){
+        errno = ENOTCONN;
+        return -1;
+    }
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "openFile,%s,%d", pathname, flags);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
     return 0;
 }
 
 int readFile(const char* pathname, void** buf, size_t* size){
+
+    if(!pathname || !buf || connection_socket == 0){
+        fprintf(stderr, "Errore file\n");
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(DEBUGAPI) fprintf(stdout, "Lettura file...\n");
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "readFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    //ricevo la dimensione del file
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char* t = strtok(response, ",");
+    int size_file;
+
+    if(strcmp(t, "-1") == 0){
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+    else{
+        size_file = atoi(t);
+        *size = size_file;
+    }
+
+    //Invio la conferma al server
+    SYSCALL_EXIT("writen", notused, writen(sockfd, "0", LEN), "writen", "");
+
+    CHECKNULL(buf, malloc((size_file+1)*sizeof(char)), "malloc buf");
+
+    //nel caso in cui il buffer sia vuoto, altrimenti leggo dal buffer
+    if(*buf == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+    SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
+
+    if(DEBUGAPI) printf("Lettura avvenuta con successo\n");
     return 0;
 }
 
@@ -101,9 +180,61 @@ int unlockFile(const char* pathname){
 }
 
 int closeFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(DEBUGAPI) fprintf(stdout, "Chiusura file...\n");
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "closeFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
     return 0;
 }
 
 int removeFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(DEBUGAPI) fprintf(stdout, "Rimozione file...\n");
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "removeFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
     return 0;
 }
