@@ -79,16 +79,16 @@ int main(int argc, char* argv[]){
 
             case 'r':
                 rarg = optarg;
-                if(DEBUG) printf("Opzione -r con argomento %s\n",rarg);
+                if(DEBUGCLIENT) printf("Opzione -r con argomento %s\n",rarg);
                 addList(&lis,"r", rarg);
-                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
 
             case 'R':
                 Rarg = optarg;
-                if(DEBUG) printf("Opzione -R con argomento %s\n",Rarg);
+                if(DEBUGCLIENT) printf("Opzione -R con argomento %s\n",Rarg);
                 addList(&lis,"R", Rarg);
-                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
 
             case 'd':
@@ -114,23 +114,23 @@ int main(int argc, char* argv[]){
 
             case 'l':
                 larg = optarg;
-                if(DEBUG) printf("Opzione -l con argomento %s\n",larg);
+                if(DEBUGCLIENT) printf("Opzione -l con argomento %s\n",larg);
                 addList(&lis,"l", larg);
-                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
 
             case 'u':
                 uarg = optarg;
-                if(DEBUG) printf("Opzione -u con argomento %s\n",uarg);
+                if(DEBUGCLIENT) printf("Opzione -u con argomento %s\n",uarg);
                 addList(&lis,"u", uarg);
-                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
 
             case 'c':
-                carg=optarg;
-                if(DEBUG) printf("Opzione -c con argomento %s\n",carg);
+                carg = optarg;
+                if(DEBUGCLIENT) printf("Opzione -c con argomento %s\n",carg);
                 addList(&lis,"c",carg);
-                if(DEBUG) fprintf(stdout, "Inserito %c\n", opt);
+                if(DEBUGCLIENT) fprintf(stdout, "Inserito %c\n", opt);
                 break;
 
             case '?':
@@ -207,7 +207,6 @@ int main(int argc, char* argv[]){
     node* curr = lis;
 
     //gestisco i comandi mancanti (-w -W -r -R -l -u -c)
-
     while(curr != NULL){
         usleep(1000* time);
 
