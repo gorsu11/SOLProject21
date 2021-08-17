@@ -398,11 +398,57 @@ int lockFile(const char* pathname){
         return -1;
     }
 
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
 
+    if(DEBUGAPI) printf("Inizio lockFile di %s\n", pathname);
+
+    sprintf(buffer, "lockFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char* t = strtok(response, ",");
+    if(strcmp(t, "-1") == 0){
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
+    if(DEBUGAPI) printf("lockFile avvenuta con successo\n");
     return 0;
 }
 
 int unlockFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    if(DEBUGAPI) printf("Inizio unlockFile di %s\n", pathname);
+
+    sprintf(buffer, "unlockFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char* t = strtok(response, ",");
+    if(strcmp(t, "-1") == 0){
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
+    if(DEBUGAPI) printf("unlockFile avvenuta con successo\n");
     return 0;
 }
 
