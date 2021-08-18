@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <signal.h>
+#include <math.h>
 
 //-------------- CHIAMATE ALLE LIBRERIE ---------------//
 #include "util.h"
@@ -23,6 +24,16 @@ typedef struct nodo{
     int data;
     struct nodo* next;
 } node;
+
+//struttura per i file sulla cache
+typedef struct file {
+    char path[PATH_MAX];            //nome
+    char * data;                    //contenuto file
+    node * client_open;             //lista client che lo hanno aperto
+    int client_write;               //FILE DESCRIPTOR DEL CLIENT CHE HA ESEGUITO COME ULTIMA OPERAZIONE UNA openFile con flag O_CREATE
+    struct file * next;
+} file;
+
 //-------------------------------------------------------------//
 
 
@@ -34,6 +45,20 @@ volatile sig_atomic_t term;
 
 pthread_mutex_t mtx_lis = PTHREAD_MUTEX_INITIALIZER;            //mutex sulla lista dei client
 pthread_cond_t cond_lis = PTHREAD_COND_INITIALIZER;             //cond da utilizzare se la lista non è vuota
+
+pthread_mutex_t lock_cache = PTHREAD_MUTEX_INITIALIZER;         //mutex sulla cache
+
+file* cache = NULL;                                             //struttura per salvare i file
+
+
+int max_files;                                                  //variabile provvisoria per mantenere il massimo numero di file possibili
+int num_files;                                                  //variabile che tiene conto di quanti file ci sono nella cache
+int dim_byte;                                                   //dimensione della cache in byte
+
+//variabili per le statistiche finali
+int top_files = 0;
+int top_dim = 0;
+int replace = 0;
 //-------------------------------------------------------------//
 
 
@@ -50,6 +75,13 @@ void execute (char * request, int cfd,int pfd);
 void cleanup() {
     unlink(configuration->socket_name);
 }
+
+int aggiungiFile(char* path, int flag, int cfd);
+int rimuoviCliente(char* path, int cfd);
+int rimuoviFile(char* path, int cfd);
+void printFile (void);
+void freeList(node** head);
+int fileOpen(node* list, int cfd);
 //-------------------------------------------------------------//
 
 
@@ -287,11 +319,15 @@ int main(int argc, char* argv[]){
         SYSCALL_PTHREAD(e,pthread_join(master[i],NULL),"Errore join thread");
     }
 
-    //TODO: stampare le statistiche alla chiusura del server
-    //numero di file massimo memorizzato nel server
-    //dimensione massima in Mbytes raggiunta dal file storage
-    //numero di volte in cui l’algoritmo di rimpiazzamento della cache è stato eseguito per selezionare uno o più file “vittima”
-    //lista dei file contenuti nello storage al momento della chiusura del server.
+    //TODO: messa qui per comodità, da sostituire
+    max_files = configuration->num_files;
+
+    printf("---------STATISTICHE SERVER----------\n");
+    printf("Numero di file massimo = %d\n",top_files);
+    printf("Dimensione massima = %f Mbytes\n",(top_dim/pow(10,6)));
+    printf("Chiamate algoritmo di rimpiazzamento cache = %d\n",replace);
+    printFile();
+    printf("-------------------------------------\n");
 
     SYSCALL_EXIT("close", notused, close(listenfd), "close", "");
     freeConfig(configuration);
@@ -423,17 +459,65 @@ void execute (char * request, int cfd,int pfd){
         token = strtok(request, ",");
     }
 
-    if(!token){
+    if(token != NULL){
         if(strcmp(token, "openFile") == 0){
+            //estraggo i valori
+            token = strtok(NULL, ",");
+            char path[PATH_MAX];
 
+            //TODO: vedere se usare strncmp o strcmp
+            strncmp(path, token, PATH_MAX);
+            token = strtok(NULL, ",");
+            int flag = atoi(token);
+
+            int result;
+            if((result = aggiungiFile(path, flag, cfd)) == -1){
+                sprintf(response,"-1, %d",ENOENT);
+            }
+            else if (result == -2) {
+                sprintf(response,"-1, %d",EEXIST);
+            }
+            else{
+                sprintf(response,"0");
+            }
+
+            SYSCALL_WRITE(writen(cfd, response, LEN), "THREAD : socket write");
         }
 
         else if(strcmp(token, "closeFile") == 0){
+            //estraggo il valore
+            token = strtok(NULL, ",");
+            char path[PATH_MAX];
 
+            //TODO: vedere se usare strncmp o strcmp
+            strncpy(path, token, PATH_MAX);
+
+            int result;
+            if((result = rimuoviCliente(path, cfd)) == -1){
+                sprintf(response,"-1, %d",ENOENT);
+            }
+            else if (result == -2) {
+                sprintf(response,"-1, %d",EPERM);
+            }
+            else{
+                sprintf(response,"0");
+            }
+
+            SYSCALL_WRITE(writen(cfd, response, LEN), "THREAD : socket write");
         }
 
         else if(strcmp(token, "removeFile") == 0){
+            //estraggo il valore
+            token = strtok(NULL, ",");
+            char path[PATH_MAX];
+            strncpy(path, token, PATH_MAX);
 
+            if(rimuoviFile(path, cfd) == -1){
+                sprintf(response,"-1,%d",ENOENT);
+            }else{
+                sprintf(response,"0");
+            }
+            SYSCALL_WRITE(writen(cfd,response,LEN),"THREAD : socket write");
         }
 
         else if(strcmp(token, "writeFile") == 0){
@@ -470,4 +554,237 @@ void execute (char * request, int cfd,int pfd){
         int fine = -1;
         SYSCALL_EXIT("writen", notused, writen(pfd, &fine, sizeof(fine)), "thread: pipe writen", "");
     }
+}
+
+
+//------------- FUNZIONI PER GESTIONE LA CACHE FILE -------------//
+
+//INSERIMENTO IN TESTA, RITORNO 0 SE HO SUCCESSO, -1 SE FALLITA APERTURA FILE, -2 SE FALLITA CRTEAZIONE FILE
+int aggiungiFile(char* path, int flag, int cfd){
+    int result = 0;
+    int err;
+    int trovato = 0;
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    file** lis = &cache;
+
+    file* curr = cache;
+
+    while(curr != NULL && trovato == 0){
+        if(strcmp(path, curr->path) == 0){
+            trovato = 1;
+        }
+        curr = curr->next;
+    }
+
+    //caso in cui non viene trovato
+    //creo il file e lo inserisco in testa
+    if(flag == 1 && trovato == 0){
+        if(num_files+1 > configuration->num_files){     //applico l'algoritmo di rimozione di file dalla cache
+            file* temp = *lis;
+
+            if(temp == 0){
+                result = -1;
+            }
+            else if(temp->next == NULL){
+                *lis = NULL;
+                free(temp);
+                num_files --;
+                replace ++;
+            }
+            else{
+                file* prec = NULL;
+                while(temp->next != NULL){
+                    prec = temp;
+                    temp = temp->next;
+                }
+                prec->next = NULL;
+                free(temp->data);
+                free(temp);
+                freeList(&(temp->client_open));
+                num_files --;
+                replace ++;
+            }
+        }
+
+        if(result == 0){
+            if(DEBUGSERVER) printf("Creo il file su aggiungiFile\n");
+            fflush(stdout);
+
+            file* curr;
+            CHECKNULL(curr, malloc(sizeof(file)), "malloc curr");
+
+            strcpy(curr->path, path);
+            curr->data = NULL;
+            curr->client_write = cfd;
+            curr->client_open = NULL;
+
+            node* new;
+            CHECKNULL(new, malloc(sizeof(node)), "malloc new");
+            new->data = cfd;
+            new->next = curr->client_open;
+
+            curr->client_open = new;
+            curr->next = *lis;
+            *lis = curr;
+            num_files ++;
+            if (num_files > top_files){
+                top_files = num_files;
+            }
+        }
+    }
+
+    else if(flag == 0 && trovato == 1){
+        //apro il file per cfd, controllo se nella lista non è gia presente cfd e nel caso lo inserisco
+        if(fileOpen(curr->client_open, cfd) == 0){
+            node* new;
+            CHECKNULL(new, malloc(sizeof(node)), "malloc new");
+
+            new->data = cfd;
+            new->next = curr->client_open;
+            curr->client_open = new;
+        }
+    }
+
+    else{
+        if(flag == 0 && trovato == 0){
+            result = -1;                    //il file non esiste e non puo essere aperto
+        }
+        if(flag == 1 && trovato == 1){
+            result = -2;                    //il file esiste e non puo essere creato di nuovo
+        }
+    }
+
+    pthread_mutex_unlock(&lock_cache);
+
+    return result;
+}
+
+
+int rimuoviCliente(char* path, int cfd){
+    int result = 0;
+    int err;
+    int trovato = 0;
+    int rimosso = 0;
+
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    file* curr = cache;
+
+    while(curr != NULL && trovato == 0){
+        if(strcmp(path, curr->path) == 0){
+            trovato = 1;
+        }
+        curr = curr->next;
+    }
+
+    if(trovato == 1){
+        node* temp = curr->client_open;
+        node* prec = NULL;
+        while(temp != NULL){
+            if(temp->data == cfd){
+                rimosso = 1;
+                if(prec == NULL){
+                    curr->client_open = temp->next;
+                }
+                else{
+                    prec->next = temp->next;
+                }
+                free(temp);
+                curr->client_write = -1;
+                break;
+            }
+            prec = temp;
+            temp = temp->next;
+        }
+    }
+
+    if(trovato == 0){
+        result = -1;                //il file non esiste
+    }
+    else if(rimosso == 0){
+        result = -1;                //il file esiste ma non è stato rimosso
+    }
+
+    pthread_mutex_unlock(&lock_cache);
+
+    return result;
+}
+
+int rimuoviFile(char* path, int cfd){
+    int result = 0;
+    int err;
+    int rimosso = 0;
+
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    file** lis = &cache;
+
+    file* curr = *lis;
+    file* prec = NULL;
+
+    while (curr != NULL) {
+        if(strcmp(curr->path, path) == 0){
+            rimosso = 1;
+            if (prec == NULL) {
+                *lis = curr->next;
+            }
+            else{
+                prec->next = curr->next;
+            }
+            dim_byte = dim_byte - (int) strlen(curr->data);
+            num_files --;
+            free(curr->data);
+            freeList(&(curr->client_open));
+            free(curr);
+            break;
+        }
+        prec = curr;
+        curr = curr->next;
+    }
+
+    if(rimosso == 0){
+        result = -1;
+    }
+
+    pthread_mutex_unlock(&lock_cache);
+
+    return result;
+}
+//-------------------- FUNZIONI DI UTILITY PER LA CACHE --------------------//
+void printFile () {
+    printf ("Lista File : \n");
+    fflush(stdout);
+    file * curr = cache;
+    while (curr != NULL) {
+        printf("%s ",curr->path);
+        if (curr->data!=NULL) {
+            printf("size = %ld\n", strlen(curr->data));
+        } else {
+            printf("size = 0\n");
+        }
+
+        curr = curr->next;
+    }
+}
+
+void freeList(node ** head) {
+    node* temp;
+    node* curr = *head;
+    while (curr != NULL) {
+       temp = curr;
+       curr = curr->next;
+       free(temp);
+    }
+    *head = NULL;
+}
+
+int fileOpen(node* list, int cfd) {
+    node* curr = list;
+    while (curr != NULL) {
+        if (curr->data == cfd){
+            return 1;
+        }
+    }
+    return 0;
 }
