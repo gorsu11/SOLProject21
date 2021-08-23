@@ -81,6 +81,7 @@ int rimuoviCliente(char* path, int cfd);
 int rimuoviFile(char* path, int cfd);
 int inserisciDati(char* path, char* data, int size, int cfd);
 int appendDati(char* path, char* data, int size, int cfd);
+char* prendiFile (char* path, int cfd);
 void printFile (void);
 void freeList(node** head);
 int fileOpen(node* list, int cfd);
@@ -584,7 +585,8 @@ void execute (char * request, int cfd,int pfd){
         else if(strcmp(token, "appendToFile") == 0){
             //estraggo i valori
             token = strtok(NULL, ",");
-            char* path = token;
+            char path[PATH_MAX];
+            strncpy(path, token, PATH_MAX);
 
             //invia al client il permesso di inviare file
             sprintf(response, "0");
@@ -630,11 +632,100 @@ void execute (char * request, int cfd,int pfd){
         }
 
         else if(strcmp(token, "readFile") == 0){
+            //estraggo gli argomenti
 
+            token = strtok(NULL, ",");
+            char path[PATH_MAX];
+            strncpy(path, token, PATH_MAX);
+
+            char* file = prendiFile(path, cfd);
+
+            char buf[LEN];
+            memset(buf, 0, LEN);
+
+            if(file == NULL){
+                //invio un errore al client
+                sprintf(buf, "-1,%d", EPERM);
+                SYSCALL_WRITE(writen(cfd, buf, LEN), "readFile: socket write");
+            }
+            else{
+                //invio la size del file
+                sprintf(buf, "%ld", strlen(file));
+                SYSCALL_WRITE(writen(cfd, buf, LEN),"readFile: socket write size file");
+
+                char buf1[LEN];
+                memset(buf1, 0, LEN);
+                SYSCALL_READ(s, readn(cfd, buf1, LEN), "readFile: socket read response");
+
+                if(DEBUGSERVER) printf("Ricevuto dal client %s\n", buf1);
+                fflush(stdout);
+
+                if(strcmp(buf1, "0") == 0){
+                    //se è andato tutto bene invio i file
+                    SYSCALL_WRITE(writen(cfd, file, strlen(file)),"readFile: socket write file");
+                }
+            }
         }
 
         else if(strcmp(token, "readNFile") == 0){
+            //estraggo gli argomenti
+            token = strtok(NULL, ",");
+            int num = atoi(token);
+            int err;
 
+            if(DEBUGSERVER) printf("File Richiesti: %d\nFile esistenti: %d\n", num, num_files);
+
+            SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+            //controllo sul valore num
+            if((num <= 0) || (num > num_files)){
+                num = num_files;
+            }
+            //invio il numero al client
+            char buf[LEN];
+            memset(buf, 0, LEN);
+            sprintf(buf, "%d", num);
+
+            SYSCALL_WRITE(writen(cfd, buf, LEN), "readNFile: socket write num");
+
+            //ricevo la conferma del client
+            char conf[LEN];
+            memset(conf, 0, LEN);
+
+            SYSCALL_READ(s, readn(cfd, conf, LEN), "readNFile: socket read response");
+
+            //invio gli N files
+            file* curr = cache;
+            for(int i=0; i<num; i++){
+                //invio il path al client
+                char path[LEN];
+                memset(path, 0, LEN);
+                sprintf(path, "%s", curr->path);
+                SYSCALL_WRITE(write(cfd, path, LEN), "readNFile: socket write path");
+
+                //ricevo la conferma
+                char conf [LEN];
+                memset(conf, 0, LEN);
+                SYSCALL_READ(s,readn(cfd, conf, LEN), "readNFile: socket read response");
+
+                //invio size
+                char ssize [LEN];
+                memset(ssize, 0, LEN);
+                sprintf(ssize, "%ld", strlen(curr->data));
+                SYSCALL_WRITE(writen(cfd, ssize, LEN), "readNFile: socket write size");
+
+                //ricevo la conferma
+                char conf2[LEN];
+                memset(conf2, 0, LEN);
+                SYSCALL_READ(s, readn(cfd, conf2, LEN), "readNFile: socket read response");
+
+                //invio file
+                SYSCALL_WRITE(writen(cfd, curr->data, strlen(curr->data)), "readNFile: socket write file");
+
+                curr = curr->next;
+            }
+
+            pthread_mutex_unlock(&lock_cache);
         }
 
         else if(strcmp(token, "lockFile") == 0){
@@ -963,6 +1054,30 @@ int appendDati(char* path, char* data, int size, int cfd){
     }
     pthread_mutex_unlock(&lock_cache);
     return result;
+}
+
+char* prendiFile (char* path, int cfd){
+    int err;
+    char* response = NULL;
+
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    int trovato = 0;
+    file* curr = cache;
+
+    while(curr != NULL){
+        if(strcmp(curr->path, path) == 0){
+            trovato = 1;
+            if(fileOpen(curr->client_open, cfd) == 1){
+                response = curr->data;
+            }
+            break;
+        }
+        curr = curr->next;
+    }
+
+    pthread_mutex_unlock(&lock_cache);
+    return response;
 }
 
 //-------------------- FUNZIONI DI UTILITY PER LA CACHE --------------------//
