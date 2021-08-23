@@ -1,27 +1,14 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include "commandList.h"
 
-#include "util.h"
-
-#define MAX_PATH_LENGTH 1024
-
-typedef struct node {
-    char * cmd;
-    char * arg;
-    struct node * next;
-} node;
-
-//RETURN 1 SSE LIST CONTIENE IL COMANDO CMD (LO RIMUOVE DALLA LISTA), 0 ALTRIMENTI -- SE LO TROVA INSERISCE L'ARGOMENTO IN ARG SE PRESENTE, NULL ALTRIMENTI
 
 void addList (node ** list,char * cmd,char * arg) {
     node* new;
     CHECKNULL(new, malloc(sizeof(node)), "malloc");
     CHECKNULL(new->cmd, malloc(sizeof(cmd)), "malloc");
-
     strcpy(new->cmd,cmd);
+
     if (arg != NULL) {
-        CHECKNULL(new->arg, malloc(MAX_PATH_LENGTH), "malloc");
+        CHECKNULL(new->arg, malloc(PATH_MAX), "malloc");
         strcpy(new->arg,arg);
     }
     else new->arg = NULL;
@@ -94,5 +81,4 @@ void freeList (node ** list) {
         (*list)=(*list)->next;
         free(tmp);
     }
-
 }
