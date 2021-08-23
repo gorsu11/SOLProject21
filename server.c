@@ -79,9 +79,12 @@ void cleanup() {
 int aggiungiFile(char* path, int flag, int cfd);
 int rimuoviCliente(char* path, int cfd);
 int rimuoviFile(char* path, int cfd);
+int inserisciDati(char* path, char* data, int size, int cfd);
+int appendDati(char* path, char* data, int size, int cfd);
 void printFile (void);
 void freeList(node** head);
 int fileOpen(node* list, int cfd);
+int resizeCache(int dim);
 //-------------------------------------------------------------//
 
 
@@ -314,6 +317,9 @@ int main(int argc, char* argv[]){
     }
 
     printf("Closing server ...\n");
+    for (int i=0;i<configuration->num_thread;i++) {
+        inserisciTesta(&coda, -1);
+    }
 
     for (int i=0;i<configuration->num_thread;i++) {
         SYSCALL_PTHREAD(e,pthread_join(master[i],NULL),"Errore join thread");
@@ -329,7 +335,10 @@ int main(int argc, char* argv[]){
     printFile();
     printf("-------------------------------------\n");
 
+    //-------------------- LIBERO LA MEMORIA E CHIUDO LA SOCKET --------------------//
+
     SYSCALL_EXIT("close", notused, close(listenfd), "close", "");
+    free(master);
     freeConfig(configuration);
 
     if(DEBUGSERVER) printf("Connessione chiusa");
@@ -454,6 +463,7 @@ void execute (char * request, int cfd,int pfd){
     memset(response, 0, LEN);
 
     char* token = NULL;
+    int s;
 
     if(!request){
         token = strtok(request, ",");
@@ -521,11 +531,102 @@ void execute (char * request, int cfd,int pfd){
         }
 
         else if(strcmp(token, "writeFile") == 0){
+            //estraggo il valore
+            token = strtok(NULL, ",");
+            char path[PATH_MAX];
+            strncpy(path, token, PATH_MAX);
 
+            //invia al client il permesso di inviare file
+            sprintf(response, "0");
+            SYSCALL_WRITE(writen(cfd, response, LEN), "writeFile: socket write");
+
+            //ricevo size del file
+            char buf1[LEN];
+            memset(buf1, 0, LEN);
+            SYSCALL_READ(s, readn(cfd, buf1, LEN), "writeFile: socket read");
+
+            if(DEBUGSERVER) printf("Ricevuto dal client la size %s\n", buf1);
+
+            int size = atoi(buf1);
+
+            //invio la conferma al client
+            SYSCALL_WRITE(writen(cfd, "0", LEN), "writeFile: conferma al client");
+
+            //ricevo i file
+            char* buf2;
+            CHECKNULL(buf2, malloc((size+1)*sizeof(char)), "malloc buf2");
+
+            SYSCALL_READ(s, readn(cfd, buf2, (size+1)), "writeFile: socket read");
+
+            if(DEBUGSERVER) printf("Ricevuto dal client %s\n", buf2);
+
+            //inserisco a questo punto i dati nella cache
+            char result[LEN];
+            memset(result, 0, LEN);
+
+            int res;
+            if((res = inserisciDati(path, buf2, size+1, cfd)) == -1){
+                sprintf(result, "-1,%d", ENOENT);
+            }
+            else if(res == -2){
+                sprintf(result, "-2,%d", EPERM);
+            }
+            else if(res == -3){
+                sprintf(result, "-3,%d", EFBIG);
+            }
+            else{
+                sprintf(result, "0");
+            }
+            free(buf2);
+            SYSCALL_WRITE(writen(cfd, result, LEN), "writeFile: socket write result");
         }
 
         else if(strcmp(token, "appendToFile") == 0){
+            //estraggo i valori
+            token = strtok(NULL, ",");
+            char* path = token;
 
+            //invia al client il permesso di inviare file
+            sprintf(response, "0");
+            SYSCALL_WRITE(writen(cfd, response, LEN), "appendToFile: socket write");
+
+            //ricevo size del file
+            char buf1[LEN];
+            SYSCALL_READ(s, readn(cfd, buf1, LEN), "appendToFile: socket read");
+
+            if(DEBUGSERVER) printf("Ricevuto dal client la size %s\n", buf1);
+
+            int size = atoi(buf1);
+
+            //invio la conferma al client
+            SYSCALL_WRITE(writen(cfd, "0", LEN), "appendToFile: conferma al client");
+
+            //ricevo i file
+            char* buf2;
+            CHECKNULL(buf2, malloc((size+1)*sizeof(char)), "malloc buf2");
+
+            SYSCALL_READ(s, readn(cfd, buf2, (size+1)), "appendToFile: socket read");
+
+            if(DEBUGSERVER) printf("Ricevuto dal client %s\n", buf2);
+
+            char result[LEN];
+            int res;
+
+            if((res = appendDati(path, buf2, size+1, cfd)) == -1){
+                sprintf(result, "-1,%d", ENOENT);
+            }
+            else if(res == -2){
+                sprintf(result, "-2,%d", EPERM);
+            }
+            else if(res == -3){
+                sprintf(result, "-3,%d", EFBIG);
+            }
+            else{
+                sprintf(result, "0");
+            }
+
+            free(buf2);
+            SYSCALL_WRITE(writen(cfd, result, LEN), "appendToFile: socket write result");
         }
 
         else if(strcmp(token, "readFile") == 0){
@@ -751,6 +852,119 @@ int rimuoviFile(char* path, int cfd){
 
     return result;
 }
+
+//RITONA 0 SE SI HA SUCCESSO, -1 SE IL FILE NON ESISTE, -2 SE L OPERAIONE NON È PERMESSA, -3 SE FILE È TROPPO GRANDE
+int inserisciDati(char* path, char* data, int size, int cfd){
+    int result = 0;
+    int err;
+
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    int trovato = 0;
+    int scritto = 0;
+    file* curr = cache;
+    while(curr != NULL){
+        if(strcmp(path, curr->path) == 0){
+            trovato = 1;
+            //controllo se sia stata fatta la OPEN_CREATE sul file
+            if(curr->client_write == cfd){
+                //controllo i limiti di memoria
+                if(size > configuration->size_Buff){
+                    result = -3;
+                    break;
+                }
+                else if(dim_byte + size > configuration->size_Buff){
+                    if(resizeCache(size) == -1){
+                        result = -3;
+                        break;
+                    }
+                    else{
+                        replace ++;
+                    }
+                }
+
+                if(result == 0){
+                    CHECKNULL(curr->data, malloc(size*sizeof(char)), "malloc curr->data");
+                    strcpy(curr->data, data);
+                    curr->client_write = -1;
+                    scritto = 1;
+                    dim_byte = dim_byte + size;
+                    if(dim_byte > top_dim){
+                        top_dim = dim_byte;
+                    }
+                }
+            }
+            break;
+        }
+        curr = curr->next;
+    }
+
+    if(trovato == 0 && result == 0){
+        result = -1;
+    }
+    else if (scritto == 0 && result == 0){
+        result = -2;
+    }
+    pthread_mutex_unlock(&lock_cache);
+    return result;
+}
+
+int appendDati(char* path, char* data, int size, int cfd){
+    int result = 0;
+    int err;
+
+    SYSCALL_PTHREAD(err, pthread_mutex_lock(&lock_cache), "Lock Cache");
+
+    int trovato = 0;
+    int scritto = 0;
+    file* curr = cache;
+    while(curr != NULL){
+        if(strcmp(path, curr->path) == 0){
+            trovato = 1;
+
+            //controllo di aver gia aperto i file
+            if(fileOpen(curr->client_open, cfd) == 1){
+                char* temp = realloc(curr->data, (strlen(curr->data)+size+1) *sizeof(char));
+                if(temp != NULL){
+                    //controllo i limiti della memoria
+                    if(dim_byte + size > configuration->size_Buff){
+                        if(resizeCache(size) == -1){
+                            result = -3;
+                            break;
+                        }
+                        else{
+                            replace++;
+                        }
+                    }
+                    if(result == 0){
+                        strcat(temp, data);
+                        scritto = 1;
+                        curr->data = temp;
+                        if(curr->client_write == cfd){
+                            curr->client_write = -1;
+                        }
+                        dim_byte = dim_byte+size;
+                        if(dim_byte>top_dim){
+                            top_dim = dim_byte;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        curr = curr->next;
+    }
+
+    if(trovato == 0){
+        result = -1;
+    }
+    else if (scritto == 0){
+        result = -2;
+    }
+    pthread_mutex_unlock(&lock_cache);
+    return result;
+}
+
 //-------------------- FUNZIONI DI UTILITY PER LA CACHE --------------------//
 void printFile () {
     printf ("Lista File : \n");
@@ -786,5 +1000,39 @@ int fileOpen(node* list, int cfd) {
             return 1;
         }
     }
+    return 0;
+}
+
+//funzione che elimina l'ultimo file della lista finche non c è abbastanza spazio per il nuovo file
+int resizeCache(int dim){
+    file** lis = &cache;
+    while(dim_byte + dim > configuration->size_Buff){
+        //elimino in coda
+        file* temp = *lis;
+        if(temp == NULL){
+            break;
+        }
+        else if(temp->next == NULL){
+            *lis = NULL;
+        }
+        else{
+            file* prec = NULL;
+            while(temp->next != NULL){
+                prec = temp;
+                temp = temp->next;
+            }
+            prec->next = NULL;
+        }
+        dim_byte = dim_byte - (int)strlen(temp->data);
+        num_files--;
+        free(temp->data);
+        freeList(&(temp->client_open));
+        free(temp);
+    }
+
+    if(*lis == NULL && (dim_byte + dim > configuration->size_Buff)){
+        return -1;
+    }
+
     return 0;
 }
