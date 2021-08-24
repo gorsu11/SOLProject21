@@ -1,10 +1,3 @@
-//
-//  commandlist.c
-//  PSOL21
-//
-//  Created by Gianluca Orsucci on 06/07/21.
-//
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,7 +11,7 @@ typedef struct node {
 } node;
 
 
-void addList (node ** list,char * cmd,char * arg) {
+void addList (node** list,char* cmd, char* arg) {
     node* new;
     CHECKNULL(new, malloc(sizeof(node)), "malloc");
     CHECKNULL(new->cmd, malloc(sizeof(cmd)), "malloc");
@@ -44,9 +37,9 @@ void addList (node ** list,char * cmd,char * arg) {
     curr->next = new;
 }
 
-void printList (node * list) {
-    node * curr = list;
-    while (curr!=NULL) {
+void printList (node* list) {
+    node* curr = list;
+    while(curr!=NULL) {
         printf("CMD = %s ARG = %s \n",curr->cmd,curr->arg);
         curr = curr->next;
     }
@@ -65,7 +58,6 @@ int containCMD (node ** list, char * cmd, char ** arg) {
             curr = curr->next;
         }
     }
-
     if (trovato==1) {
         if (curr->arg!=NULL) {
             char arg [strlen(curr->arg)];
@@ -89,13 +81,13 @@ int containCMD (node ** list, char * cmd, char ** arg) {
 
 }
 
-void freeList (node ** list) {
-    node * tmp;
+void freeList (node** list) {
+    node* tmp;
     while (*list!=NULL) {
         tmp = *list;
         free((*list)->arg);
         free((*list)->cmd);
-        (*list)=(*list)->next;
+        (*list) = (*list)->next;
         free(tmp);
     }
 

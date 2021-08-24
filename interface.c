@@ -1,10 +1,3 @@
-//
-//  interface.c
-//  PSOL21
-//
-//  Created by Gianluca Orsucci on 05/07/21.
-//
-
 #include "interface.h"
 #include "conn.h"
 #include <sys/socket.h>
@@ -41,12 +34,12 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
     SYSCALL_EXIT("readn", notused, readn(sockfd,response,LEN), "readn", "");
 
-    if(!DEBUG) printf("%s\n", response);
+    if(!DEBUGAPI) printf("%s\n", response);
     strncpy(socket_name, sockname, LENSOCK);
 
     connection_socket = 1;
 
-    if(DEBUG) fprintf(stdout, "connessione avvenuta con successo\n");
+    if(DEBUGAPI) fprintf(stdout, "connessione avvenuta con successo\n");
 
     return 0;
 
@@ -63,21 +56,21 @@ int closeConnection(const char* sockname){
         return -1;
     }
 
-    if(DEBUG) fprintf(stdout, "Richiesta chiusura\n");
+    if(DEBUGAPI) fprintf(stdout, "Richiesta chiusura\n");
 
 
     if((close(sockfd)) == -1){
         return -1;
     }
 
-    if(DEBUG) fprintf(stdout, "chiusura avvenuta con successo\n");
+    if(DEBUGAPI) fprintf(stdout, "chiusura avvenuta con successo\n");
     return 0;
 }
 
 
 
 int openFile(const char* pathname, int flags){
-    if(DEBUG) fprintf(stdout, "Apertura file...\n");
+    if(DEBUGAPI) fprintf(stdout, "Apertura file...\n");
 
     if(!pathname){
         errno = EINVAL;
@@ -99,7 +92,7 @@ int openFile(const char* pathname, int flags){
 
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
-    if(DEBUG) printf("Ricevuto %s\n", response);
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
 
     char *t = strtok(response, ",");
 
@@ -127,7 +120,7 @@ int closeFile(const char* pathname){
 
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
-    if(DEBUG) printf("Ricevuto %s\n", response);
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
 
     char *t = strtok(response, ",");
 
@@ -139,34 +132,6 @@ int closeFile(const char* pathname){
 
     return 0;
 
-}
-
-int removeFile(const char* pathname){
-    if(!pathname || connection_socket == 0){
-        errno = EINVAL;
-        return -1;
-    }
-
-    char buffer[LEN];
-    memset(buffer, 0, LEN);
-
-    sprintf(buffer, "removeFile,%s", pathname);
-
-    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
-
-    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
-
-    if(DEBUG) printf("Ricevuto %s\n", response);
-
-    char *t = strtok(response, ",");
-
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        t = strtok(NULL, ",");
-        errno = atoi(t);
-        return -1;
-    }
-
-    return 0;
 }
 
 
@@ -187,7 +152,7 @@ int readFile(const char* pathname, void** buf, size_t* size){
     //ricevo la dimensione del file
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
-    if(DEBUG) printf("Ricevuto %s\n", response);
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
 
     char* t = strtok(response, ",");
     int size_file;
@@ -214,7 +179,7 @@ int readFile(const char* pathname, void** buf, size_t* size){
     }
     SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
 
-    if(DEBUG) printf("Lettura avvenuta con successo\n");
+    if(DEBUGAPI) printf("Lettura avvenuta con successo\n");
     return 0;
 }
 
@@ -510,5 +475,35 @@ int unlockFile(const char* pathname){
     }
 
     if(DEBUGAPI) printf("unlockFile avvenuta con successo\n");
+    return 0;
+}
+
+
+int removeFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "removeFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
+    if(DEBUGAPI) printf("removeFile avvenuta con successo\n");
     return 0;
 }

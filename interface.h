@@ -1,20 +1,7 @@
-//
-//  interface.h
-//  PSOL21
-//
-//  Created by Gianluca Orsucci on 05/07/21.
-//
-
 #ifndef interface_h
 #define interface_h
 
 #include "util.h"
-
-//-------------- DEFINE UTILIZZATI ---------------//
-#define LEN 1000
-#define LENSOCK 1024
-
-//------------------------------------------------//
 
 //-------------- DICHIARAZIONE DELLE VARIABILI ---------------//
 int sockfd;
@@ -23,6 +10,7 @@ int notused;
 char response[LEN];
 char socket_name[LENSOCK];
 //-------------------------------------------------------------//
+
 
 //int openConnection(const char* sockname, int msec, const struct timespec abstime);
 int openConnection(const char* sockname, int msec, const struct timespec abstime);

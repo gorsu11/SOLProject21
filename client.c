@@ -1,10 +1,3 @@
-//
-//  client.c
-//  PSOL21
-//
-//  Created by Gianluca Orsucci on 05/07/21.
-//
-
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +11,7 @@
 #include "util.h"
 #include "conn.h"
 #include "interface.c"
-#include "commandList.c"
+#include "commandlist.c"
 
 
 //-------------- STRUTTURE PER SALVARE I DATI ---------------//
@@ -163,19 +156,16 @@ int main(int argc, char *argv[]) {
             default:;
         }
     }
-    //if(DEBUG) printList(lis);
-    printList(lis);
+
+    if(DEBUGCLIENT) printList(lis);
 
     char* arg = NULL;
 
     //gestione delle chiamate semplici
     if(containCMD(&lis, "h", &arg) == 1){
-        printf("Operazioni supportate : \n-h\n-f filename\n-w dirname[,n=0]\n-W file1[,file2]\n-r file1[,file2]\n-R [n=0]\n-d dirname\n-t time\n-c file1[,file2]\n-p\n");
+        printf("Operazioni supportate: \n-h\n-f filename\n-w dirname[,n=0]\n-W file1[,file2]\n-r file1[,file2]\n-R [n=0]\n-d dirname\n-t time\n-c file1[,file2]\n-p\n");
 
-
-        //TODO: vedere un attimo la gestione di h
         freeList(&lis);
-        //free(resolvedpath)
         return 0;
     }
 
@@ -207,7 +197,6 @@ int main(int argc, char *argv[]) {
         clock_gettime(CLOCK_REALTIME, &t);
         t.tv_sec = t.tv_sec + 60;
 
-
         if(openConnection(farg, 1000, t) == -1){
              if(flags == 1){
                  printf("Operazione : -f (connessione) File : %s Esito : negativo\n", farg);
@@ -222,12 +211,13 @@ int main(int argc, char *argv[]) {
          }
     }
 
-    printList(lis);
-    //gestisco i comandi mancanti (-w -W -r -R -c)
+    if(DEBUGCLIENT) printList(lis);
+
     node* curr = lis;
 
+    //gestisco i comandi mancanti (-w -W -r -R -c -l -u)
     while(curr != NULL){
-        sleep(tms);                 //TODO: vedere se utilizzare sleep o usleep
+        usleep(1000* tms);
 
         if(strcmp(curr->cmd, "w") == 0){
             char* save1 = NULL;
@@ -263,7 +253,7 @@ int main(int argc, char *argv[]) {
                         }
                     }
                     else if(n == 0){
-
+                        //{INT_MAX} Maximum value of an int.\ [CX] [Option Start] Minimum Acceptable Value: 2 147 483 647 [Option End]
                         listDir(namedir, INT_MAX);
                         if (flags==1){
                             printf("Operazione : -w (scrivi directory) Directory : %s Esito : positivo\n",namedir);
@@ -375,9 +365,8 @@ int main(int argc, char *argv[]) {
                             mkdir_p(dir);
 
                             //CREA FILE SE NON ESISTE
-                            //TODO: modificare controllo di correttezza
                             FILE* of = fopen(path, "w");
-                            if (of==NULL) {
+                            if (of == NULL) {
                                 printf("Errore salvataggio file\n");
                             }
                             else {
@@ -517,11 +506,12 @@ void listDir (char * dirname, int n) {
     DIR * dir;
     struct dirent* entry;
 
-    if ((dir=opendir(dirname))==NULL || num_files == n) {
+    if ((dir = opendir(dirname)) == NULL || num_files == n) {
         return;
     }
 
-    //printf ("Directory: %s\n",dirname);
+    if(DEBUGCLIENT) printf("Directory: %s\n", dirname);
+
     while ((entry = readdir(dir))!=NULL && (num_files < n)) {
 
         char path[PATH_MAX];
@@ -537,8 +527,7 @@ void listDir (char * dirname, int n) {
         if (S_ISDIR(info.st_mode)) {
             if (strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0) continue;
             listDir(path,n);
-        }
-        else {
+        } else {
             char * resolvedPath = NULL;
             if ((resolvedPath = realpath(path,resolvedPath))==NULL) {
                 perror("realpath");
@@ -558,8 +547,5 @@ void listDir (char * dirname, int n) {
 
     }
 
-    if ((closedir(dir))==-1) {
-        perror("closing directory");
-        exit(EXIT_FAILURE);
-    }
+    SYSCALL_EXIT("close directory", notused, (closedir(dir)), "close dir", "");
 }

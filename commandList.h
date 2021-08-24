@@ -1,23 +1,11 @@
-#ifndef commandList_h
-#define commandList_h
+#ifndef commandlist_h
+#define commandlist_h
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+//------------ NON UTILIZZATA -------------//
 
-#include "util.h"
+//void addList(node ** list,char * cmd,char * arg);
+//void printList(node * list);
+//int containCMD(node ** list, char * cmd, char ** arg);
+//void freeList(node ** list);
 
-typedef struct node {
-    char * cmd;
-    char * arg;
-    struct node * next;
-} node;
-
-
-void addList(node ** list,char * cmd,char * arg);
-void printList(node * list);
-int searchCommand(node ** list, char * cmd, char ** arg);
-void freeList(node ** list);
-
-
-#endif /* commandList_h */
+#endif /* commandlist_h */

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SOCKNAME  "socket_name"
+#define SOCKNAME     "socket_name"
 #define MAXBACKLOG   32
 
 /** Evita letture parziali
