@@ -1,4 +1,14 @@
-#include "commandList.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "util.h"
+
+typedef struct node {
+    char * cmd;
+    char * arg;
+    struct node * next;
+} node;
 
 
 void addList (node ** list,char * cmd,char * arg) {

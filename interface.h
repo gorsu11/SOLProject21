@@ -18,6 +18,9 @@ char socket_name[LENSOCK];
 //-------------------------------------------------------------//
 
 
+int compare_time (struct timespec a, struct timespec b) ;
+int mkdir_p(const char *path);
+
 //int openConnection(const char* sockname, int msec, const struct timespec abstime);
 int openConnection(const char* sockname, int msec, const struct timespec abstime);
  /*

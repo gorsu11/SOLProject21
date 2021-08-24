@@ -9,8 +9,8 @@
 #include <sys/stat.h>
 
 #include "util.h"
-#include "interface.h"
-#include "commandList.h"
+#include "interface.c"
+#include "commandList.c"
 
 //-------------- STRUTTURE PER SALVARE I DATI ---------------//
 //variabile che serve per abilitare e disabilitare le stampe chiamando l'opzione -p
@@ -20,10 +20,6 @@ int p_time = 0;
 
 void listDir (char * dirname, int n);
 //-------------------------------------------------------------//
-
-
-//TODO: aggiungere la funzione listDir e cambiare mk_dir
-//TODO: manca da fare la lockFile, unlockFile e removeFile
 
 int main(int argc, char* argv[]){
     char opt;
@@ -158,11 +154,13 @@ int main(int argc, char* argv[]){
         }
     }
 
+    printList(lis);
+
     char *temp = NULL;
 
     //esaurisco le richieste che possono esser chiamate una sola volta
     if(searchCommand(&lis, "h", &temp) == 1){
-        //TODO: stampare la lista di tutte le opzioni accettate
+        printf("Operazioni supportate : \n-h\n-f filename\n-w dirname[,n=0]\n-W file1[,file2]\n-r file1[,file2]\n-R [n=0]\n-d dirname\n-t time\n-c file1[,file2]\n-p\n");
 
         //libero la lista
         freeList(&lis);
@@ -183,14 +181,14 @@ int main(int argc, char* argv[]){
 
         if(openConnection(farg, 1000, t) == -1){
              if(flags == 1){
-                 printf("Operazione : -f (connessione)\nFile : %s\nEsito : negativo\n", farg);
+                 printf("Operazione : -f (connessione) File : %s Esito : negativo\n", farg);
              }
              perror("Errore apertura connessione");
          }
          else{
              printf("Connessione aperta\n");
              if(flags == 1){
-                 printf("Operazione : -f (connessione)\nFile : %s\nEsito : positivo\n",farg);
+                 printf("Operazione : -f (connessione) File : %s Esito : positivo\n",farg);
              }
          }
     }
