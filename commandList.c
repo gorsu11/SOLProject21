@@ -1,3 +1,10 @@
+//
+//  commandlist.c
+//  PSOL21
+//
+//  Created by Gianluca Orsucci on 06/07/21.
+//
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,8 +22,8 @@ void addList (node ** list,char * cmd,char * arg) {
     node* new;
     CHECKNULL(new, malloc(sizeof(node)), "malloc");
     CHECKNULL(new->cmd, malloc(sizeof(cmd)), "malloc");
-    strcpy(new->cmd,cmd);
 
+    strcpy(new->cmd,cmd);
     if (arg != NULL) {
         CHECKNULL(new->arg, malloc(PATH_MAX), "malloc");
         strcpy(new->arg,arg);
@@ -45,7 +52,7 @@ void printList (node * list) {
     }
 }
 
-int searchCommand (node ** list, char * cmd, char ** arg) {
+int containCMD (node ** list, char * cmd, char ** arg) {
 
     node * curr = *list;
     node * prec = NULL;
@@ -91,4 +98,5 @@ void freeList (node ** list) {
         (*list)=(*list)->next;
         free(tmp);
     }
+
 }

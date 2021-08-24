@@ -1,3 +1,10 @@
+//
+//  interface.h
+//  PSOL21
+//
+//  Created by Gianluca Orsucci on 05/07/21.
+//
+
 #ifndef interface_h
 #define interface_h
 
@@ -16,10 +23,6 @@ int notused;
 char response[LEN];
 char socket_name[LENSOCK];
 //-------------------------------------------------------------//
-
-
-int compare_time (struct timespec a, struct timespec b) ;
-int mkdir_p(const char *path);
 
 //int openConnection(const char* sockname, int msec, const struct timespec abstime);
 int openConnection(const char* sockname, int msec, const struct timespec abstime);

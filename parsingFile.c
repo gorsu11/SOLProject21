@@ -5,11 +5,10 @@
 #include "util.h"
 
 #define SOCKNAME "socket_name"
-#define LEN 100
 
 typedef struct config_File{
     int num_thread;                         //numero thread
-    size_t size_Buff;                        //spazio di memoria
+    size_t sizeBuff;                        //spazio di memoria
     unsigned int num_files;                 //numero massimo dei file possibili
     char *socket_name;                      //nome della socket
 } config;
@@ -20,8 +19,8 @@ config* getConfig(const char* string){
     config *configuration; //Variabile che ospita la configurazione
     CHECKNULL(configuration, malloc(sizeof(config)), "malloc configuration");
     char str[200];
-    char arg [LEN];
-    char val [LEN];
+    char arg [100];
+    char val [100];
 
     if((file = fopen(string, "r")) == NULL){
         perror("Error open file");
@@ -73,7 +72,7 @@ config* getConfig(const char* string){
                     break;
                 }
                 else{
-                    configuration->size_Buff = n;
+                    configuration->sizeBuff = n;
                 }
 
             } else if (strcmp(arg,"Nome Socket")==0) {
@@ -94,7 +93,7 @@ config* default_configuration(){
     config* configuration = malloc(sizeof(config));
     configuration->num_files = 10;
     configuration->num_thread = 1;
-    configuration->size_Buff = 10000;
+    configuration->sizeBuff = 10000;
     CHECKNULL(configuration->socket_name, malloc(BUFSIZE), "malloc");
     strcmp(configuration->socket_name, SOCKNAME);
     return configuration;
@@ -103,7 +102,7 @@ config* default_configuration(){
 //Stampa la struttura
 void stampa(config* configuration){
     printf("Numero thread: %d\n", configuration->num_thread);
-    printf("Spazio memoria: %zu\n", configuration->size_Buff);
+    printf("Spazio memoria: %zu\n", configuration->sizeBuff);
     printf("Numero files: %d\n", configuration->num_files);
     printf("Nome socket: %s\n", configuration->socket_name);
 }
@@ -112,7 +111,7 @@ void stampa(config* configuration){
 int freeConfig(config* configuration){
     if(configuration != NULL){
         configuration->num_files = 0;
-        configuration->size_Buff = 0;
+        configuration->sizeBuff = 0;
         configuration->num_thread = 0;
         if(configuration->socket_name != NULL){
             char *string = configuration->socket_name;

@@ -58,10 +58,6 @@
 #define DEBUGAPI 0
 #endif
 
-#if !defined(DEBUG)
-#define DEBUG 0
-#endif
-
 #if !defined(DEBUGSERVER)
 #define DEBUGSERVER 0
 #endif

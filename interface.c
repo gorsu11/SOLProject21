@@ -1,13 +1,17 @@
+//
+//  interface.c
+//  PSOL21
+//
+//  Created by Gianluca Orsucci on 05/07/21.
+//
+
 #include "interface.h"
 #include "conn.h"
-#include "util.h"
-
 #include <sys/socket.h>
 #include <time.h>
 #include <errno.h>
 #include <libgen.h>
 
-//TODO: sostituire EINVAL con gli errori corretti
 
 int openConnection(const char* sockname, int msec, const struct timespec abstime){
     if((!sockname) || (msec <=0)){
@@ -48,31 +52,32 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
 }
 
-
 int closeConnection(const char* sockname){
-    if(!sockname){
+    if(!sockname || strncmp(sockname, SOCKNAME, LENSOCK)){
         errno = EINVAL;
         return -1;
     }
 
     if(connection_socket == 0){
-        errno = EINVAL;
+        errno = EINVAL;     //TODO: da modificare opportunamente
         return -1;
     }
 
-    if(DEBUGAPI) fprintf(stdout, "Richiesta chiusura\n");
+    if(DEBUG) fprintf(stdout, "Richiesta chiusura\n");
 
 
     if((close(sockfd)) == -1){
         return -1;
     }
 
-    if(DEBUGAPI) fprintf(stdout, "chiusura avvenuta con successo\n");
+    if(DEBUG) fprintf(stdout, "chiusura avvenuta con successo\n");
     return 0;
 }
 
+
+
 int openFile(const char* pathname, int flags){
-    if(DEBUGAPI) fprintf(stdout, "Apertura file...\n");
+    if(DEBUG) fprintf(stdout, "Apertura file...\n");
 
     if(!pathname){
         errno = EINVAL;
@@ -94,7 +99,7 @@ int openFile(const char* pathname, int flags){
 
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
-    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+    if(DEBUG) printf("Ricevuto %s\n", response);
 
     char *t = strtok(response, ",");
 
@@ -107,15 +112,70 @@ int openFile(const char* pathname, int flags){
     return 0;
 }
 
-int readFile(const char* pathname, void** buf, size_t* size){
+int closeFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
 
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "closeFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUG) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
+    return 0;
+
+}
+
+int removeFile(const char* pathname){
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    char buffer[LEN];
+    memset(buffer, 0, LEN);
+
+    sprintf(buffer, "removeFile,%s", pathname);
+
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
+
+    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
+
+    if(DEBUG) printf("Ricevuto %s\n", response);
+
+    char *t = strtok(response, ",");
+
+    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        t = strtok(NULL, ",");
+        errno = atoi(t);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int readFile(const char* pathname, void** buf, size_t* size){
     if(!pathname || !buf || connection_socket == 0){
         fprintf(stderr, "Errore file\n");
         errno = EINVAL;
         return -1;
     }
-
-    if(DEBUGAPI) fprintf(stdout, "Lettura file...\n");
 
     char buffer[LEN];
     memset(buffer, 0, LEN);
@@ -127,7 +187,7 @@ int readFile(const char* pathname, void** buf, size_t* size){
     //ricevo la dimensione del file
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
-    if(DEBUGAPI) printf("Ricevuto %s\n", response);
+    if(DEBUG) printf("Ricevuto %s\n", response);
 
     char* t = strtok(response, ",");
     int size_file;
@@ -154,7 +214,7 @@ int readFile(const char* pathname, void** buf, size_t* size){
     }
     SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
 
-    if(DEBUGAPI) printf("Lettura avvenuta con successo\n");
+    if(DEBUG) printf("Lettura avvenuta con successo\n");
     return 0;
 }
 
@@ -245,6 +305,7 @@ int readNFiles(int N, const char* dirname){
             char* file_name = basename(path);
             sprintf(sp,"%s/%s",dirname,file_name);
 
+            //TODO: usare i DEFINE per aprire il file
             FILE* of;
             of = fopen(sp,"w");
             if (of==NULL) {
@@ -347,6 +408,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     }
 
     char buffer[LEN];
+    //memset(buffer, 0, DIM_MSG);
     sprintf(buffer, "appendToFile,%s", pathname);
 
     SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
@@ -448,65 +510,5 @@ int unlockFile(const char* pathname){
     }
 
     if(DEBUGAPI) printf("unlockFile avvenuta con successo\n");
-    return 0;
-}
-
-int closeFile(const char* pathname){
-    if(!pathname || connection_socket == 0){
-        errno = EINVAL;
-        return -1;
-    }
-
-    if(DEBUGAPI) fprintf(stdout, "Chiusura file...\n");
-
-    char buffer[LEN];
-    memset(buffer, 0, LEN);
-
-    sprintf(buffer, "closeFile,%s", pathname);
-
-    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
-
-    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
-
-    if(DEBUGAPI) printf("Ricevuto %s\n", response);
-
-    char *t = strtok(response, ",");
-
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        t = strtok(NULL, ",");
-        errno = atoi(t);
-        return -1;
-    }
-
-    return 0;
-}
-
-int removeFile(const char* pathname){
-    if(!pathname || connection_socket == 0){
-        errno = EINVAL;
-        return -1;
-    }
-
-    if(DEBUGAPI) fprintf(stdout, "Rimozione file...\n");
-
-    char buffer[LEN];
-    memset(buffer, 0, LEN);
-
-    sprintf(buffer, "removeFile,%s", pathname);
-
-    SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
-
-    SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
-
-    if(DEBUGAPI) printf("Ricevuto %s\n", response);
-
-    char *t = strtok(response, ",");
-
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        t = strtok(NULL, ",");
-        errno = atoi(t);
-        return -1;
-    }
-
     return 0;
 }
