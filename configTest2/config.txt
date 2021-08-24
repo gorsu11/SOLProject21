@@ -1,0 +1,4 @@
+File Massimi=10
+Dimensione Massima=1048576
+Numero thread=4
+Nome Socket=socket_name
