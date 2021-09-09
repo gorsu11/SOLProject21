@@ -12,7 +12,7 @@
 #include "../includes/util.h"
 #include "../includes/conn.h"
 #include "../includes/interface.h"
-#include "commandList.c"
+#include "../includes/commandList.h"
 
 ///////////////
 //-------------- STRUTTURE PER SALVARE I DATI ---------------//
@@ -189,14 +189,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //if(containCMD(&lis, "d", &arg) == 1){
-
-    //}
-
-    if(containCMD(&lis, "D", &arg) == 1){
-
-    }
-
     if(containCMD(&lis, "f", &arg) == 1){
         struct timespec t;
         clock_gettime(CLOCK_REALTIME, &t);
@@ -300,7 +292,7 @@ int main(int argc, char *argv[]) {
                     stat(resolvedPath, &info_file);
 
                     if(S_ISREG(info_file.st_mode)){
-                        if (openFile(resolvedPath,1)==-1) {
+                        if (openFile(resolvedPath,1) == -1) {
                             if(DEBUGCLIENT) printf("[CLIENT] Entra su openFile\n");
                             if (flags == 1){
                                 printf("Operazione : -W (scrivi file) File : %s Esito : negativo\n",file);
@@ -309,7 +301,7 @@ int main(int argc, char *argv[]) {
                         }
                         else{
                             if(DEBUGCLIENT) printf("[CLIENT] resolvedPath è: %s\n", resolvedPath);
-                            if (writeFile(resolvedPath,NULL)==-1) {
+                            if (writeFile(resolvedPath, Darg) == -1) {
                                 if(DEBUGCLIENT) printf("[CLIENT] Entra su writeFile\n");
                                 if (flags == 1){
                                     printf("Operazione : -W (scrivi file) File : %s Esito : negativo\n",file);
@@ -446,7 +438,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (strcmp(curr->cmd, "l") == 0) {
+        if(strcmp(curr->cmd, "l") == 0) {
           char *save4 = NULL;
           char *token4 = strtok_r(curr->arg, ",", &save4);
 
@@ -490,7 +482,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (strcmp(curr->cmd, "u") == 0) {
+        if(strcmp(curr->cmd, "u") == 0) {
           char *save5 = NULL;
           char *token5 = strtok_r(curr->arg, ",", &save5);
 
@@ -575,15 +567,15 @@ int main(int argc, char *argv[]) {
             Darg = strtok_r(curr->arg, ",", &save8);
 
             if(checkw == 0 && checkW == 0){
-                if (flags == 1) printf("Operazione : -D (scrivi file rimossi)\nDirectory : %s\nEsito : negativo\n",Darg);
+                if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : negativo\n",Darg);
             }
             else{
-                if (flags == 1) printf("Operazione : -D (scrivi file rimossi)\nDirectory : %s\nEsito : positivo\n",Darg);
+                if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : positivo\n",Darg);
             }
         }
 
         curr = curr -> next;
-        printList(curr);
+        if(DEBUGCLIENT) printList(curr);
     }
 
     //Libero la memoria e chiudo la connessione

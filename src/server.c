@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
                     int flag;
                     if ((len = (int) read(comunication[0],&cfd1,sizeof(cfd1))) > 0) { //LEGGO UN INTERO == 4 BYTES
                         //printf ("Master : client %d ritornato\n",cfd1);
-                        SYSCALL_EXIT("readn", notused, readn(comunication[0],&flag,sizeof(flag)),"Master : read pipe", "");
+                        SYSCALL_EXIT("readn", notused, readn(comunication[0], &flag, sizeof(flag)),"Master : read pipe", "");
                         if (flag == -1) { //CLIENT TERMINATO LO RIMUOVO DAL SET DELLA SELECT
                             printf("Closing connection with client...\n");
                             FD_CLR(cfd1,&set);
@@ -542,10 +542,17 @@ void execute (char * request, int cfd,int pfd){
 
             if(DEBUGSERVER) printf("[SERVER] Ricevuto dal client %s\n", buf2);
 
+            //invio la conferma al client
+            SYSCALL_WRITE(writen(cfd, "0", LEN), "writeFile: conferma file ricevuto dal client");
+
+            //char buf3[LEN];
+            memset(directory_name, 0, LEN);
+            SYSCALL_READ(s, readn(cfd, directory_name, LEN), "appendToFile: socket read directory");
+
             char result[LEN];
             int res;
 
-            if((res = appendDati(path, buf2, size+1, cfd, NULL)) == -1){
+            if((res = appendDati(path, buf2, size+1, cfd, directory_name)) == -1){
                 sprintf(result, "-1,%d", ENOENT);
             }
             else if(res == -2){

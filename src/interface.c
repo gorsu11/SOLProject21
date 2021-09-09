@@ -6,7 +6,6 @@
 #include <time.h>
 #include <errno.h>
 #include <libgen.h>
-//////////////////
 
 int openConnection(const char* sockname, int msec, const struct timespec abstime){
     if((!sockname) || (msec <=0)){
@@ -36,7 +35,7 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
     SYSCALL_EXIT("readn", notused, readn(sockfd,response,LEN), "readn", "");
 
-    if(!DEBUGAPI) printf("[INTERFACE] %s\n", response);
+    if(!DEBUGAPI) printf("%s\n", response);
     strncpy(socket_name, sockname, LENSOCK);
 
     connection_socket = 1;
@@ -54,7 +53,7 @@ int closeConnection(const char* sockname){
     }
 
     if(connection_socket == 0){
-        errno = EINVAL;     //TODO: da modificare opportunamente
+        errno = ENOTCONN;     //TODO: da modificare opportunamente
         return -1;
     }
 
@@ -180,12 +179,6 @@ int readFile(const char* pathname, void** buf, size_t* size){
 
     CHECKNULL(buf, malloc((size_file+1)*sizeof(char)), "malloc buf");
 
-    //if(DEBUGAPI) printf("[INTERFACE] Il buffer contiene %s\n", (char*) buf);
-    //nel caso in cui il buffer sia vuoto, altrimenti leggo dal buffer
-    //if(*buf == NULL){
-      //  errno = EINVAL;
-      //  return -1;
-    //}
     SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
 
     if(DEBUGAPI) printf("[INTERFACE] Il buffer contiene\n%s\n", (char*) buf);
@@ -194,7 +187,7 @@ int readFile(const char* pathname, void** buf, size_t* size){
 
 int readNFiles(int N, const char* dirname){
     if(connection_socket == 0){
-        errno = EINVAL;
+        errno = ENOTCONN;
         return -1;
     }
 
@@ -397,7 +390,7 @@ int writeFile(const char* pathname, const char* dirname){
 }
 
 int appendToFile(const char* pathname, void* buf, size_t size, const char* dirname){
-    if(!pathname || !dirname || connection_socket == 0){
+    if(!pathname || connection_socket == 0){
         errno = EINVAL;
         return -1;
     }
@@ -430,7 +423,18 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     //INVIO I FILE
     SYSCALL_EXIT("writen", notused, writen(sockfd, buf, size), "writen", "");
 
-    //RISPOSTA DAL SERVER
+    //CONFERMA DAL SERVER
+    char conf1[LEN];
+    memset(conf1, 0, LEN);
+    SYSCALL_EXIT("readn", notused, readn(sockfd, conf1, LEN), "readn", "");
+
+    //INVIO LA DIRECTORY
+    char tmp1[LEN];
+    memset(tmp1, 0, LEN);
+    sprintf(tmp1, "%s", dirname);
+    SYSCALL_EXIT("writen", notused, writen(sockfd, tmp1, LEN), "writen", "");
+
+    //RISPOSTA SERVER
     char result[LEN];
     memset(result, 0, LEN);
     SYSCALL_EXIT("readn", notused, readn(sockfd, result, LEN), "readn", "");
@@ -441,7 +445,6 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     if (strcmp(t1,"-1")==0) { //ERRORE DAL SERVER
         t1 = strtok(NULL,",");
         errno = atoi(t1);
-        //free(buf);
         return -1;
     }
 
