@@ -34,20 +34,13 @@ cleanall :
 	-rm -f $(TARGETS) objs/*.o lib/*.a #tmp/* *~
 
 #LANCIA IL PRIMO TEST
-test1 : $(TARGETS)
-	./server configTest1/config.txt &
-	chmod +x test1.sh 
-	./test1.sh &
+test1 :
+	./test1.sh
 
 #LANCIA SECONDO TEST
-test2 : $(TARGETS)
-	./server configTest2/config.txt &
-	chmod +x test2.sh 
-	./test2.sh &	
+test2 :  
+	./test2.sh 	
 
 #LANCIA TERZO TEST
-test3 : $(TARGETS)
-	./server configTest3/config.txt &
-	chmod +x test3.sh 
-	./test3.sh &	
-	
+test3 : 
+	./test3.sh
