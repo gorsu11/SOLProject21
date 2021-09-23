@@ -1,34 +1,45 @@
-//
-//  util.h
-//  PSOL21
-//
-//  Created by Gianluca Orsucci on 05/07/21.
-//
-
 #ifndef util_h
 #define util_h
 
-#include <stdarg.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/un.h>
+//-------------- INCLUDE DI TUTTE LE LIBRERIE ---------------//
+#include <assert.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <libgen.h>
+#include <limits.h>
+#include <math.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <pthread.h>
-#include <errno.h>
-#include <limits.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+//-------------------------------------------------------//
 
 //-------------- DEFINE UTILIZZATI ---------------//
 #define LEN 1000
 #define LENSOCK 1024
+#define UNIX_PATH_MAX 104 /* man 7 unix */
 
+#define O_CREATE 1
+#define O_LOCK 2
+#define O_CREATEANDLOCK 3
 //------------------------------------------------//
 
+int notused;
 
-// utility syscall socket
+//-------------- UTILITY PER LA SOCKET ---------------//
 #define SYSCALL_WRITE(c,e) \
     if (c==-1) { \
         perror(e); \
@@ -47,14 +58,21 @@
         return; \
     }
 
-
-#define CHECKNULL(r,c,e) CHECK_EQ_EXIT(e, (r=c), NULL,e,"")
+#define SYSCALL_BREAK(c,e) \
+        if(c==-1) { perror(e);break; }
 
 // utility macro pthread
 #define SYSCALL_PTHREAD(e,c,s) \
     if((e=c)!=0) { errno=e;perror(s);fflush(stdout);exit(EXIT_FAILURE); }
 
-#define UNIX_PATH_MAX 104 /* man 7 unix */
+//-----------------------------------------------------//
+
+
+//-------------- UTILITY PER LA MALLOC ---------------//
+#define CHECKNULL(r,c,e) CHECK_EQ_EXIT(e, (r=c), NULL,e,"")
+//-----------------------------------------------------//
+
+
 
 //-------------- DEFINE DEI DEBUG CHE UTILIZZO PER SEMPLIFICARE E PER POTER STAMPARE ---------------//
 //variabile globale che se impostata mi permette di effettuare debugging
@@ -69,7 +87,6 @@
 #if !defined(DEBUGCLIENT)
 #define DEBUGCLIENT 0
 #endif
-
 //-------------------------------------------------------------//
 
 
@@ -163,15 +180,6 @@ static inline int isNumber(const char* s, long* n) {
   }
   return 1;   // non e' un numero
 }
-
-/*
-long isNumberParser(const char* s) {
-   char* e = NULL;
-   long val = strtol(s, &e, 0);
-   if (e != NULL && *e == (char)0) return val;
-   return -1;
-}
-*/
 
 
 #define LOCK(l)      if (pthread_mutex_lock(l)!=0)        { \
