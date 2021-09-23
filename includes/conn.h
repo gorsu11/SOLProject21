@@ -1,14 +1,6 @@
 #ifndef conn_h
 #define conn_h
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
-#include <sys/un.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "util.h"
 
 #define SOCKNAME     "socket_name"
@@ -57,6 +49,5 @@ static inline int writen(long fd, void *buf, size_t size) {
     }
     return 1;
 }
-
 
 #endif /* conn_h */
