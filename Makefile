@@ -7,11 +7,17 @@ TARGETS		= server client
 #GENERA ESEGUIBILI SERVER E CLIENT
 all : $(TARGETS)
 
-server : src/server.c
-	$(CC) $(CFLAGS) $< -o $@ -lpthread
+server : src/server.c lib/libParsing.a lib/libFunction.a
+	$(CC) $(CFLAGS) $< -o $@ -Llib -lParsing -Llib -lFunction -lpthread
 
-client : src/client.c lib/libapi.a lib/libCommand.a
-	$(CC) $(CFLAGS) src/client.c -o $@ -Llib -lapi -Llib -lCommand
+client : src/client.c lib/libApi.a lib/libCommand.a
+	$(CC) $(CFLAGS) src/client.c -o $@ -Llib -lApi -Llib -lCommand
+
+objs/parsingFile.o : src/parsingFile.c
+	$(CC) $(CFLAGS) -c src/parsingFile.c -o $@
+
+objs/serverFunction.o : src/serverFunction.c
+	$(CC) $(CFLAGS) -c src/serverFunction.c -o $@
 
 objs/commandList.o : src/commandList.c
 	$(CC) $(CFLAGS) -c src/commandList.c -o $@
@@ -19,11 +25,17 @@ objs/commandList.o : src/commandList.c
 objs/interface.o : src/interface.c
 	$(CC) $(CFLAGS) -c src/interface.c -o $@
 
+lib/libParsing.a: objs/parsingFile.o
+	ar r lib/libParsing.a objs/parsingFile.o
+
+lib/libFunction.a: objs/serverFunction.o
+	ar r lib/libFunction.a objs/serverFunction.o
+
 lib/libCommand.a : objs/commandList.o
 	ar r lib/libCommand.a objs/commandList.o
 
-lib/libapi.a : objs/interface.o 
-	ar r lib/libapi.a objs/interface.o
+lib/libApi.a : objs/interface.o 
+	ar r lib/libApi.a objs/interface.o
 
 #ELIMINA SOLO GLI ESEGUIBILI
 clean :
