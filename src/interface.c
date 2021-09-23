@@ -2,11 +2,6 @@
 #include "../includes/conn.h"
 #include "../includes/util.h"
 
-#include <sys/socket.h>
-#include <time.h>
-#include <errno.h>
-#include <libgen.h>
-
 int openConnection(const char* sockname, int msec, const struct timespec abstime){
     if((!sockname) || (msec <=0)){
         errno = EINVAL;
@@ -35,7 +30,7 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
     SYSCALL_EXIT("readn", notused, readn(sockfd,response,LEN), "readn", "");
 
-    if(!DEBUGAPI) printf("%s\n", response);
+    if(DEBUGAPI) printf("%s\n", response);
     strncpy(socket_name, sockname, LENSOCK);
 
     connection_socket = 1;
@@ -544,10 +539,17 @@ int removeFile(const char* pathname){
 
     char *t = strtok(response, ",");
 
+    if(DEBUGAPI) printf("[INTERFACE] t è %s\n", t);
     if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
+        if(!DEBUGAPI) printf("[INTERFACE] Entra nell errore\n");
         t = strtok(NULL, ",");
         errno = atoi(t);
         return -1;
+    }
+    else if(strcmp(t, "-2") == 0 ){
+      t = strtok(NULL, ",");
+      errno = atoi(t);
+      return -1;
     }
 
     if(DEBUGAPI) printf("[INTERFACE] removeFile avvenuta con successo\n");

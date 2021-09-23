@@ -1,17 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "../includes/util.h"
-
-#define SOCKNAME "socket_name"
-
-typedef struct config_File{
-    int num_thread;                         //numero thread
-    size_t sizeBuff;                        //spazio di memoria
-    unsigned int num_files;                 //numero massimo dei file possibili
-    char *socket_name;                      //nome della socket
-} config;
+#include "../includes/parsingFile.h"
 
 long isNumberParser(const char* s) {
    char* e = NULL;

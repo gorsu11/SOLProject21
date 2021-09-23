@@ -1,20 +1,9 @@
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <time.h>
-#include <dirent.h>
-#include <limits.h>
-#include <sys/stat.h>
-#include <libgen.h>
-
 #include "../includes/util.h"
 #include "../includes/conn.h"
 #include "../includes/interface.h"
 #include "../includes/commandList.h"
 
-///////////////
+
 //-------------- STRUTTURE PER SALVARE I DATI ---------------//
 //variabile che serve per abilitare e disabilitare le stampe chiamando l'opzione -p
 int flags = 0;
@@ -292,7 +281,7 @@ int main(int argc, char *argv[]) {
                     stat(resolvedPath, &info_file);
 
                     if(S_ISREG(info_file.st_mode)){
-                        if (openFile(resolvedPath,1) == -1) {
+                        if (openFile(resolvedPath, 2) == -1) {
                             if(DEBUGCLIENT) printf("[CLIENT] Entra su openFile\n");
                             if (flags == 1){
                                 printf("Operazione : -W (scrivi file) File : %s Esito : negativo\n",file);
@@ -390,19 +379,20 @@ int main(int argc, char *argv[]) {
                         }
                         if(DEBUGCLIENT) printf("[CLIENT] Il buffer contiene %s\n", buf);
                         free(buf);
-                    }
-                    if(closeFile(file) == -1){
-                        if (flags == 1){
-                            printf("Operazione : -r (leggi file) File : %s Esito : negativo\n",file);
+                        if(closeFile(file) == -1){
+                            if (flags == 1){
+                                printf("Operazione : -r (leggi file) File : %s Esito : negativo\n",file);
+                            }
+                            perror("Errore chiusura file");
                         }
-                        perror("Errore chiusura file");
-                    }
-                    else{
-                        if(DEBUGCLIENT) printf("[CLIENT] Entra su closeFile\n");
-                        if (flags == 1){
-                            printf("Operazione : -r (leggi file) File : %s Esito : positivo\n",file);
+                        else{
+                            if(DEBUGCLIENT) printf("[CLIENT] Entra su closeFile\n");
+                            if (flags == 1){
+                                printf("Operazione : -r (leggi file) File : %s Esito : positivo\n",file);
+                            }
                         }
                     }
+
                 }
 
                 token3 = strtok_r(NULL, ",", &save3);
@@ -463,7 +453,7 @@ int main(int argc, char *argv[]) {
                       }
                       perror("Errore blocco file");
                   }
-                  if(DEBUGCLIENT) printf("[CLIENT] Il risultato di closeFile è %d\n", closeFile(file));
+                  //if(DEBUGCLIENT) printf("[CLIENT] Il risultato di closeFile è %d\n", closeFile(file));
                   else if(closeFile(file) == -1){
                       if (flags == 1){
                           printf("Operazione : -r (leggi file) File : %s Esito : negativo\n",file);
@@ -475,8 +465,8 @@ int main(int argc, char *argv[]) {
                       if (flags == 1){
                           printf("Operazione : -l (blocco file) File : %s Esito : positivo\n",file);
                       }
+                      if(DEBUGCLIENT) printf("[CLIENT] lockFile su %s eseguita con successo\n", file);
                   }
-                  if(DEBUGCLIENT) printf("[CLIENT] lockFile su %s eseguita con successo\n", file);
                 }
                 token4 = strtok_r(NULL, ",", &save4);
             }
@@ -616,7 +606,7 @@ void listDir (char * dirname, int n, char* my_directory) {
             if ((resolvedPath = realpath(path,resolvedPath))==NULL) {
                 perror("realpath");
             }else{
-                if (openFile(resolvedPath,1) == -1) perror("Errore apertura file");
+                if (openFile(resolvedPath, 1) == -1) perror("Errore apertura file");
                 else {
                     num_files++;
                     //WRITE FILE
@@ -628,7 +618,6 @@ void listDir (char * dirname, int n, char* my_directory) {
             usleep(1000*tms);
 
         }
-
     }
 
     SYSCALL_EXIT("close directory", notused, (closedir(dir)), "close dir", "");
