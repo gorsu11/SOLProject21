@@ -1067,7 +1067,7 @@ int rimuoviFile(char* path, int cfd){
     while (curr != NULL) {
         if(strcmp(curr->path, path) == 0){
             if(DEBUGSERVER) printf("Trovato\n");
-            if(curr->lock_flag != -1){
+            if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 if(DEBUGSERVER) printf("Remove non consentita\n");
                 result = -2;
                 UNLOCK(&lock_cache);
@@ -1178,7 +1178,7 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
     file* curr = cache;
     while(curr != NULL){
         if(strcmp(path, curr->path) == 0){
-            if(curr->lock_flag != -1){
+            if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 result = -4;
                 UNLOCK(&lock_cache);
                 return result;
@@ -1237,7 +1237,7 @@ char* prendiFile (char* path, int cfd){
 
     while(curr != NULL){
         if(strcmp(curr->path, path) == 0){
-            if(curr->lock_flag != -1){
+            if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 UNLOCK(&lock_cache);
                 return NULL;
             }
