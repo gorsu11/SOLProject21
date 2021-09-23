@@ -1,10 +1,6 @@
 #ifndef commandlist_h
 #define commandlist_h
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "util.h"
 
 typedef struct node {
