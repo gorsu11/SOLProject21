@@ -90,8 +90,9 @@ int openFile(const char* pathname, int flags){
 
     char *t = strtok(response, ",");
 
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        t = strtok(NULL, ",");
+    int ritorno;
+    if((ritorno = atoi(t)) != 0){
+        t = strtok(NULL,",");
         errno = atoi(t);
         return -1;
     }
@@ -121,8 +122,9 @@ int closeFile(const char* pathname){
 
     char *t = strtok(response, ",");
 
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        t = strtok(NULL, ",");
+    int ritorno;
+    if((ritorno = atoi(t)) != 0){
+        t = strtok(NULL,",");
         errno = atoi(t);
         return -1;
     }
@@ -237,8 +239,8 @@ int readNFiles(int N, const char* dirname){
         SYSCALL_EXIT("readn", notused, readn(sockfd, ssize, LEN), "readn", "");
 
         char *t2 = strtok(ssize,",");
-        if (strcmp(t2,"-1")==0) { //ERRORE DAL SERVER
-            t2 = strtok(NULL,",");
+        if(strcmp(t2, "-1") == 0){
+            t2 = strtok(NULL, ",");
             errno = atoi(t2);
             return -1;
         }
@@ -253,12 +255,11 @@ int readNFiles(int N, const char* dirname){
         SYSCALL_EXIT("readn", notused, readn(sockfd, fbuf, size_file), "readn", "");
 
         char *t3 = strtok(fbuf,",");
-        if (t3!=NULL) {
-            if (strcmp(t3,"-1")==0) { //ERRORE DAL SERVER
-                t3 = strtok(NULL,",");
-                errno = atoi(t3);
-                return -1;
-            }
+        int ritorno3;
+        if((ritorno3 = atoi(t3)) != 0){
+            t3 = strtok(NULL,",");
+            errno = atoi(t3);
+            return -1;
         }
 
         if(dirname != NULL){
@@ -373,12 +374,12 @@ int writeFile(const char* pathname, const char* dirname){
         char * t1;
         t1 = strtok(result,",");
 
-        if (strcmp(t1,"-1")==0) { //ERRORE DAL SERVER
+        int ritorno;
+        if((ritorno = atoi(t1)) != 0){
             t1 = strtok(NULL,",");
             errno = atoi(t1);
             return -1;
         }
-
     }
 
     return 0;
@@ -437,7 +438,8 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     char * t1;
     t1 = strtok(result,",");
 
-    if (strcmp(t1,"-1")==0) { //ERRORE DAL SERVER
+    int ritorno;
+    if((ritorno = atoi(t1)) != 0){
         t1 = strtok(NULL,",");
         errno = atoi(t1);
         return -1;
@@ -471,11 +473,12 @@ int lockFile(const char* pathname){
 
   char* t = strtok(buf1, ",");
 
-  if(strcmp(t, "-1") == 0){
-      t = strtok(NULL, ",");
-      errno = atoi(t);
-      return -1;
-  }
+    int ritorno;
+    if((ritorno = atoi(t)) != 0){
+        t = strtok(NULL,",");
+        errno = atoi(t);
+        return -1;
+    }
 
   if(DEBUGAPI) printf("[INTERFACE] lockFile avvenuta con successo\n");
   return 0;
@@ -508,11 +511,12 @@ int unlockFile(const char* pathname){
 
   if(DEBUGAPI) printf("[INTERFACE] Viene inviato al client %s\n", t);
 
-  if(strcmp(t, "-1") == 0){
-      t = strtok(NULL, ",");
-      errno = atoi(t);
-      return -1;
-  }
+    int ritorno;
+    if((ritorno = atoi(t)) != 0){
+        t = strtok(NULL,",");
+        errno = atoi(t);
+        return -1;
+    }
 
   if(DEBUGAPI) printf("[INTERFACE] unlockFile avvenuta con successo\n");
   return 0;
@@ -540,16 +544,11 @@ int removeFile(const char* pathname){
     char *t = strtok(response, ",");
 
     if(DEBUGAPI) printf("[INTERFACE] t è %s\n", t);
-    if(strcmp(t, "-1") == 0){       //Caso di fallimento dal server
-        if(!DEBUGAPI) printf("[INTERFACE] Entra nell errore\n");
-        t = strtok(NULL, ",");
+    int ritorno;
+    if((ritorno = atoi(t)) != 0){
+        t = strtok(NULL,",");
         errno = atoi(t);
         return -1;
-    }
-    else if(strcmp(t, "-2") == 0 ){
-      t = strtok(NULL, ",");
-      errno = atoi(t);
-      return -1;
     }
 
     if(DEBUGAPI) printf("[INTERFACE] removeFile avvenuta con successo\n");
