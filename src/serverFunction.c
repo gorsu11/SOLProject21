@@ -56,7 +56,7 @@ int find(node** testa, int data){
 
 void rwLock_start(lockFile* file){
     file->waiting ++;
-    if(!DEBUGSERVER) printf("[SERVER] I clienti in attesa sono %d e writer_active è %d\n", file->waiting, file->writer_active);
+    if(DEBUGSERVER) printf("[SERVER] I clienti in attesa sono %d e writer_active è %d\n", file->waiting, file->writer_active);
     while (file->waiting > 1 || file->writer_active == true) {
         if(DEBUGSERVER) printf("[SERVER] Entra in WAIT\n");
         WAIT(&(file->cond_file), &(file->mutex_file));
@@ -65,10 +65,10 @@ void rwLock_start(lockFile* file){
 }
 
 void rwLock_end(lockFile* file){
-    printf("%d\n", file->waiting);
+    //printf("%d\n", file->waiting);
     file->waiting --;
     file->writer_active = false;
-    printf("%d\n", file->waiting);
+    //printf("%d\n", file->waiting);
     BCAST(&(file->cond_file));
 }
 

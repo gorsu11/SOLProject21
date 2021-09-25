@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
              perror("Errore apertura connessione");
          }
          else{
-             printf("Connessione aperta\n");
+             if(DEBUGCLIENT) printf("Connessione aperta\n");
              if(flags == 1){
                  printf("Operazione : -f (connessione) File : %s Esito : positivo\n",farg);
              }
@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
                     stat(resolvedPath, &info_file);
 
                     if(S_ISREG(info_file.st_mode)){
-                        if (openFile(resolvedPath, 2) == -1) {
+                        if (openFile(resolvedPath, 1) == -1) {
                             if(DEBUGCLIENT) printf("[CLIENT] Entra su openFile\n");
                             if (flags == 1){
                                 printf("Operazione : -W (scrivi file) File : %s Esito : negativo\n",file);
