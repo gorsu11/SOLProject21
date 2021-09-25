@@ -1053,6 +1053,8 @@ int rimuoviCliente(char* path, int cfd){
 }
 
 int rimuoviFile(char* path, int cfd){
+
+    if(DEBUGSERVER) printf("[SERVER] Entra in rimuovi file\n");
     int result = 0;
 
     int rimosso = 0;
@@ -1066,7 +1068,7 @@ int rimuoviFile(char* path, int cfd){
 
     while (curr != NULL) {
         if(strcmp(curr->path, path) == 0){
-            if(DEBUGSERVER) printf("Trovato\n");
+            if(DEBUGSERVER) printf("[SERVER] Trovato\n");
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 if(DEBUGSERVER) printf("Remove non consentita\n");
                 result = -2;
@@ -1080,12 +1082,22 @@ int rimuoviFile(char* path, int cfd){
             else{
                 prec->next = curr->next;
             }
-            dim_byte = dim_byte - (int) strlen(curr->data);
+
+            if(curr->data != NULL){
+                if(DEBUGSERVER) printf("ENTRA\n");
+                dim_byte = dim_byte - (int) strlen(curr->data);
+                if(DEBUGSERVER) printf("Da errore prima del caso 1\n");
+                free(curr->data);
+            }
+
             num_files --;
-            free(curr->data);
+            if(DEBUGSERVER) printf("Da errore prima del caso 2\n");
             freeList(&(curr->client_open));
+            if(DEBUGSERVER) printf("Da errore prima del caso 3\n");
             freeList(&(curr->testa_lock));
+            if(DEBUGSERVER) printf("Da errore prima del caso 4\n");
             freeList(&(curr->coda_lock));
+            if(DEBUGSERVER) printf("Da errore prima del caso 5\n");
             free(curr);
             break;
         }
@@ -1096,6 +1108,7 @@ int rimuoviFile(char* path, int cfd){
     }
 
     if(rimosso == 0){
+        if(DEBUGSERVER) printf("Entra in rimosso = 0\n");
         result = -1;
     }
 
@@ -1126,8 +1139,10 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
             //controllo se sia stata fatta la OPEN_CREATE sul file
             if(curr->client_write == cfd){
                 //controllo i limiti di memoria
+                if(DEBUGSERVER) printf("Memoria cache %zu e grandezza file %d\n", configuration->sizeBuff, size);
                 if(size > configuration->sizeBuff){
                     result = -3;
+                    if(DEBUGSERVER) printf("Entra nel caso del file troppo grande\n");
                     break;
                 }
                 else if(dim_byte + size > configuration->sizeBuff){
@@ -1260,8 +1275,7 @@ char* prendiFile (char* path, int cfd){
 int bloccaFile(char* path, int cfd){
     if(DEBUGSERVER) printf("[SERVER] Entra in bloccaFile\n");
 
-    int e1 = pthread_mutex_lock(&lock_cache);
-    printf("%d\n", e1);
+    LOCK(&lock_cache);
 
     int result = 0;
 
