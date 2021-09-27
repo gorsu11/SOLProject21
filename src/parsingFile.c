@@ -70,8 +70,13 @@ config* getConfig(const char* string){
                 }
 
             } else if (strcmp(arg,"Nome Socket")==0) {
-                configuration->socket_name = malloc(20 * sizeof(char));
+                configuration->socket_name = malloc(LENSOCK * sizeof(char));
                 strcpy(configuration->socket_name,val);
+            }
+
+            else if (strcmp(arg,"File Log")==0) {
+                configuration->fileLog = malloc(BUFSIZE * sizeof(char));
+                strcpy(configuration->fileLog,val);
             }
         }
 
@@ -88,8 +93,10 @@ config* default_configuration(){
     configuration->num_files = 10;
     configuration->num_thread = 1;
     configuration->sizeBuff = 10000;
-    CHECKNULL(configuration->socket_name, malloc(BUFSIZE), "malloc");
+    CHECKNULL(configuration->socket_name, malloc(LENSOCK), "malloc");
     strcmp(configuration->socket_name, SOCKNAME);
+    CHECKNULL(configuration->fileLog, malloc(BUFSIZE), "malloc");
+    strcmp(configuration->fileLog, FILE_LOG);
     return configuration;
 }
 
@@ -99,6 +106,7 @@ void stampa(config* configuration){
     printf("Spazio memoria: %zu\n", configuration->sizeBuff);
     printf("Numero files: %d\n", configuration->num_files);
     printf("Nome socket: %s\n", configuration->socket_name);
+    printf("File di log: %s\n", configuration->fileLog);
 }
 
 //Libera lo spazio in memoria
@@ -110,6 +118,11 @@ int freeConfig(config* configuration){
         if(configuration->socket_name != NULL){
             char *string = configuration->socket_name;
             free(string);
+        }
+
+        if(configuration->fileLog != NULL){
+            char *string1 = configuration->fileLog;
+            free(string1);
         }
         free(configuration);
         return 0;
