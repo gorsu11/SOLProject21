@@ -2,6 +2,7 @@
 #include "../includes/conn.h"
 #include "../includes/parsingFile.h"
 #include "../includes/serverFunction.h"
+#include "../includes/log.h"
 
 //--------------- VARIABILI GLOBALI ----------------//
 int dim_byte; //DIMENSIONE CACHE IN BYTE
@@ -34,6 +35,8 @@ config* configuration;
 //CODA DI COMUNICAZIONE MANAGER --> WORKERS / RISORSA CONDIVISA / CODA FIFO
 node * coda = NULL;
 
+FILE* logFile;
+
 void cleanup() {
     unlink(configuration->socket_name);
 }
@@ -54,6 +57,10 @@ int main(int argc, char *argv[]) {
         printf("Presi i valori di default\n");
     }
 
+    logFile = fopen(configuration->fileLog, "w+");
+    if(logFile == NULL){
+        fprintf(stderr, "File log non aperto correttamente\n");
+    }
     if(DEBUGSERVER) stampa(configuration);
     //------------------------------------------------------------//
 
@@ -182,6 +189,11 @@ int main(int argc, char *argv[]) {
                             perror("Errore accept client");
                         }
                     }
+
+                    char* timeString = getTime();
+                    CONTROLLA(fprintf(logFile, "********** Nuova connessione: %d\tData: %s **********\n\n", cfd, timeString));
+                    free(timeString);
+
                     FD_SET(cfd, &set);
                     if (cfd > num_fd) num_fd = cfd;
                     num_client++;
@@ -207,6 +219,11 @@ int main(int argc, char *argv[]) {
                             //printf("Closing connection with client...\n");
                             FD_CLR(cfd1, &set);
                             if (cfd1 == num_fd) num_fd = updatemax(set, num_fd);
+
+                            char* timeString = getTime();
+                            CONTROLLA(fprintf(logFile, "********** Connessione chiusa: %d\tData: %s **********\n\n", cfd1, timeString));
+                            free(timeString);
+
                             close(cfd1);
                             num_client--;
                             if (term == 2 && num_client == 0) {
@@ -249,7 +266,7 @@ int main(int argc, char *argv[]) {
     printf("-------------------------------------------------------\n");
 
     SYSCALL_EXIT("close", notused, close(listenfd), "close socket", "");
-
+    SYSCALL_EXIT("fclose", notused, fclose(logFile), "close logfile", "");
     free(master);
     freeConfig(configuration);
 
@@ -379,7 +396,6 @@ void execute (char * request, int cfd,int pfd){
             if(DEBUGSERVER) printf("[SERVER] Dopo la strcpy di removeFile ho path:%s e token:%s\n", path, token);
 
             int res;
-            //TODO: cambiare in base all'arrivo dei valori
             if((res = rimuoviFile(path, cfd)) == -1){
                 sprintf(response,"-1,%d",ENOENT);
             }
@@ -789,12 +805,19 @@ int updatemax(fd_set set, int fdmax) {
 //INSERIMENTO IN TESTA, RITORNO 0 SE HO SUCCESSO, -1 SE FALLITA APERTURA FILE, -2 SE FALLITA CREAZIONE FILE
 int aggiungiFile(char* path, int flag, int cfd, char* dirname){
 
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "aggiungiFile");
+        return -1;
+    }
+
     if(DEBUGSERVER) printf("[SERVER] Entro su aggiungiFile con path %s e con flag %d\n", path, flag);
     int result = 0;
     int trovato = 0;
 
     LOCK(&lock_cache);
 
+    writeLogFd(logFile, cfd);
     file** lis = &cache;
     file* curr = cache;
 
@@ -893,13 +916,16 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                   if(DEBUGSERVER) printf("[SERVER] Directory non specificata\n");
                 }
 
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "eliminaFIle"));
+                CONTROLLA(fprintf(logFile, "Pathname: %s\n", temp->path));
+                CONTROLLA(fprintf(logFile, "Eliminati sulla cache %d Bytes\n", (int)strlen(temp->data)));
+
                 free(temp->data);
                 freeList(&(temp->client_open));
                 freeList(&(temp->coda_lock));
                 free(temp);
                 num_files --;
                 replace ++;
-                if(DEBUGSERVER) printf("[SERVER] Eseguito il rimpiazzo per la %d volta\n", replace);
             }
         }
 
@@ -912,6 +938,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
             file* curr;
             CHECKNULL(curr, malloc(sizeof(file)), "malloc curr");
             strcpy(curr->path, path);
+
 
             if(flag == O_CREATE || flag == O_CREATEANDLOCK){
                 curr->data = NULL;
@@ -926,6 +953,10 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 curr->concorrency.waiting = 0;
                 curr->concorrency.writer_active = false;
 
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "aggiungiFile"));
+                CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+                CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
+
                 if(DEBUGSERVER) printf("[SERVER] Inserisco il file %s\n", curr->path);
             }
 
@@ -937,8 +968,11 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 curr->testa_lock = NULL;
                 curr->concorrency.waiting = 0;
                 curr->concorrency.writer_active = false;
-            }
 
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "lockFile"));
+                CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+                CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
+            }
             node* new;
             CHECKNULL(new, malloc(sizeof(node)), "malloc new");
             new->data = cfd;
@@ -964,6 +998,10 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
             node* new;
             CHECKNULL(new, malloc(sizeof(node)), "malloc new");
 
+            CONTROLLA(fprintf(logFile, "Operazione: %s\n", "aggiungiFile"));
+            CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+            CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
+
             new->data = cfd;
             new->next = curr->client_open;
             curr->client_open = new;
@@ -984,10 +1022,17 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
     UNLOCK(&lock_cache);
 
     if(DEBUGSERVER) printf("[SERVER] Il risultato è %d\n", result);
+    valutaEsito(logFile, result, "aggiungiFile");
     return result;
 }
 
 int rimuoviCliente(char* path, int cfd){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "rimuoviCliente");
+        return -1;
+    }
 
     if(DEBUGSERVER) printf("[SERVER] Entro in rimuoviCliente\n");
     int result = 0;
@@ -996,6 +1041,8 @@ int rimuoviCliente(char* path, int cfd){
     int rimosso = 0;
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     file* curr = cache;
 
@@ -1028,6 +1075,11 @@ int rimuoviCliente(char* path, int cfd){
                 else{
                     prec->next = temp->next;
                 }
+
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "rimuoviCliente"));
+                CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+                CONTROLLA(fprintf(logFile, "Eliminato il cliente %d\n", temp->data));
+
                 free(temp);
                 curr->client_write = -1;
                 break;
@@ -1049,10 +1101,17 @@ int rimuoviCliente(char* path, int cfd){
     UNLOCK(&lock_cache);
 
     if(DEBUGSERVER) printf("[SERVER] Esco da rimuoviCliente con risultato %d\n", result);
+    valutaEsito(logFile, result, "rimuoviCliente");
     return result;
 }
 
 int rimuoviFile(char* path, int cfd){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "rimuoviFile");
+        return -1;
+    }
 
     if(DEBUGSERVER) printf("[SERVER] Entra in rimuovi file\n");
     int result = 0;
@@ -1060,6 +1119,8 @@ int rimuoviFile(char* path, int cfd){
     int rimosso = 0;
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     file** lis = &cache;
 
@@ -1072,8 +1133,9 @@ int rimuoviFile(char* path, int cfd){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 if(DEBUGSERVER) printf("Remove non consentita\n");
                 result = -2;
-                UNLOCK(&lock_cache);
-                return result;
+                //UNLOCK(&lock_cache);
+                //return result;
+                break;
             }
             rimosso = 1;
             if (prec == NULL) {
@@ -1082,6 +1144,10 @@ int rimuoviFile(char* path, int cfd){
             else{
                 prec->next = curr->next;
             }
+
+            CONTROLLA(fprintf(logFile, "Operazione: %s\n", "rimuoviFile"));
+            CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+            CONTROLLA(fprintf(logFile, "Eliminati %d Bytes\n", (int)strlen(curr->data)));
 
             if(curr->data != NULL){
                 if(DEBUGSERVER) printf("ENTRA\n");
@@ -1098,6 +1164,7 @@ int rimuoviFile(char* path, int cfd){
             if(DEBUGSERVER) printf("Da errore prima del caso 4\n");
             freeList(&(curr->coda_lock));
             if(DEBUGSERVER) printf("Da errore prima del caso 5\n");
+
             free(curr);
             break;
         }
@@ -1113,16 +1180,25 @@ int rimuoviFile(char* path, int cfd){
     }
 
     UNLOCK(&lock_cache);
-
+    valutaEsito(logFile, result, "rimuoviFile");
     return result;
 }
 
 //RITONA 0 SE SI HA SUCCESSO, -1 SE IL FILE NON ESISTE, -2 SE L OPERAIONE NON È PERMESSA, -3 SE FILE È TROPPO GRANDE
 int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "inserisciDati");
+        return -1;
+    }
+
     if(DEBUGSERVER) printf("[SERVER] Entra in inserisci dati\n");
     int result = 0;
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     int trovato = 0;
     int scritto = 0;
@@ -1131,8 +1207,9 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 result = -4;
-                UNLOCK(&lock_cache);
-                return result;
+                //UNLOCK(&lock_cache);
+                //return result;
+                break;
             }
 
             trovato = 1;
@@ -1166,6 +1243,9 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
                     if(dim_byte > top_dim){
                         top_dim = dim_byte;
                     }
+                    CONTROLLA(fprintf(logFile, "Operazione: %s\n", "inserisciDati"));
+                    CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+                    CONTROLLA(fprintf(logFile, "Scritti sul file %d Bytes\n", (int)strlen(curr->data)));
                 }
             }
             break;
@@ -1180,13 +1260,23 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
         result = -2;
     }
     UNLOCK(&lock_cache);
+    valutaEsito(logFile, result, "inserisciDati");
     return result;
 }
 
 int appendDati(char* path, char* data, int size, int cfd, char* dirname){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "appendDati");
+        return -1;
+    }
+
     int result = 0;
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     int trovato = 0;
     int scritto = 0;
@@ -1195,8 +1285,9 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 result = -4;
-                UNLOCK(&lock_cache);
-                return result;
+                //UNLOCK(&lock_cache);
+                //return result;
+                break;
             }
             trovato = 1;
             if(fileOpen(curr->client_open, cfd) == 1){
@@ -1219,10 +1310,13 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
                         if(curr->client_write == cfd){
                             curr->client_write = -1;
                         }
-                        dim_byte = dim_byte+size;
+                        dim_byte = dim_byte + size;
                         if(dim_byte>top_dim){
                             top_dim = dim_byte;
                         }
+                        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "appendDati"));
+                        CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+                        CONTROLLA(fprintf(logFile, "Scritti sul file %d Bytes\n", (int)strlen(curr->data)));
                     }
                 }
             }
@@ -1238,23 +1332,34 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
         result = -2;
     }
     UNLOCK(&lock_cache);
+    valutaEsito(logFile, result, "appendDati");
     return result;
 }
 
 char* prendiFile (char* path, int cfd){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "prendiFile");
+        return NULL;
+    }
+
     if(DEBUGSERVER) printf("[SERVER] Entro in prendifile con path %s\n", path);
 
     char* response = NULL;
 
     LOCK(&lock_cache);
-    //int trovato = 0;
+
+    writeLogFd(logFile, cfd);
+
     file* curr = cache;
 
     while(curr != NULL){
         if(strcmp(curr->path, path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
-                UNLOCK(&lock_cache);
-                return NULL;
+                //UNLOCK(&lock_cache);
+                //return NULL;
+                break;
             }
             //trovato = 1;
             if(fileOpen(curr->client_open, cfd) == 1){
@@ -1266,16 +1371,35 @@ char* prendiFile (char* path, int cfd){
             curr = curr->next;
         }
     }
+    CONTROLLA(fprintf(logFile, "Operazione: %s\n", "prendiFile"));
+    CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+    CONTROLLA(fprintf(logFile, "Letti %d Bytes\n", (int)strlen(curr->data)));
+
+    int result = 0;
+    if(response == NULL){
+        result = -1;
+    }
 
     UNLOCK(&lock_cache);
+    valutaEsito(logFile, result, "prendiFile");
+
     return response;
 }
 
 //RITORNA -1 NEL CASO IN CUI NON TROVI IL FILE, RITORNA -2 SE IL FILE È GIA LOCKED E RITORNA 0 SE HA SUCCESSO
 int bloccaFile(char* path, int cfd){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "bloccaFile");
+        return -1;
+    }
+
     if(DEBUGSERVER) printf("[SERVER] Entra in bloccaFile\n");
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     int result = 0;
 
@@ -1292,6 +1416,7 @@ int bloccaFile(char* path, int cfd){
             curr = curr->next;
         }
     }
+
     if(DEBUGSERVER) printf("[SERVER] Trovato è %d\n", trovato);
     if(trovato == 1){
         if(DEBUGSERVER) printf("[SERVER] Entra in trovato == 1\n");
@@ -1309,6 +1434,9 @@ int bloccaFile(char* path, int cfd){
 
         UNLOCK(&(curr->concorrency.mutex_file));
 
+        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "bloccaFile"));
+        CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+
         if(DEBUGSERVER) printf("[SERVER] File %s ha avuto la lock da %d (%d)\n", curr->path, curr->lock_flag, cfd);
 
     }
@@ -1319,15 +1447,25 @@ int bloccaFile(char* path, int cfd){
     UNLOCK(&lock_cache);
     if(DEBUGSERVER) printf("[SERVER] Il risultato di bloccaFile è %d\n", result);
 
+    valutaEsito(logFile, result, "bloccaFile");
     return result;
 }
 
 int sbloccaFile(char* path, int cfd){
+
+    if(path == NULL){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "sbloccaFile");
+        return -1;
+    }
+
     if(DEBUGSERVER) printf("[SERVER] Entra in sbloccaFile\n");
 
     int result = 0;
 
     LOCK(&lock_cache);
+
+    writeLogFd(logFile, cfd);
 
     int trovato = 0;
     file* curr = cache;
@@ -1358,6 +1496,10 @@ int sbloccaFile(char* path, int cfd){
         rwLock_end(&(curr->concorrency));
 
         UNLOCK(&(curr->concorrency.mutex_file));
+
+        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "sbloccaFile"));
+        CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
+
     }
     else{
         //caso in cui path non è presente
@@ -1366,15 +1508,26 @@ int sbloccaFile(char* path, int cfd){
 
     UNLOCK(&lock_cache);
     if(DEBUGSERVER) printf("[SERVER] Il risultato di sbloccaFile è %d\n", result);
+
+    valutaEsito(logFile, result, "sbloccaFile");
     return result;
 }
 
 
 //funzione che elimina l'ultimo file della lista finche non c è abbastanza spazio per il nuovo file
 int resizeCache(int dim, char* dirname){
+
+    if(dim < 0){
+        errno = EINVAL;
+        valutaEsito(logFile, -1, "resizeCache");
+        return -1;
+    }
     if(DEBUGSERVER) printf("[SERVER] ******************************************************************\n");
     if(DEBUGSERVER) printf("[SERVER] Chiamato resizeCache con dimensione %d e directory passata %s\n", dim, dirname);
     file** lis = &cache;
+
+    int result = 0;
+
     while(dim_byte + dim > configuration->sizeBuff){
         //elimino in coda
         file* temp = *lis;
@@ -1414,8 +1567,10 @@ int resizeCache(int dim, char* dirname){
             if(DEBUGSERVER) printf("[SERVER] Scritto nel file il buffer passato\n");
         }
 
+        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "resizeCache"));
+        CONTROLLA(fprintf(logFile, "File da rimuovere: %s\n", temp->path));
+        CONTROLLA(fprintf(logFile, "Rimossi: %d Bytes\n", (int) strlen(temp->data)));
 
-        //opzioneD(temp, dirname);
         dim_byte = dim_byte - (int)strlen(temp->data);
         num_files--;
         free(temp->data);
@@ -1425,8 +1580,10 @@ int resizeCache(int dim, char* dirname){
     }
 
     if(*lis == NULL && (dim_byte + dim > configuration->sizeBuff)){
-        return -1;
+        result = -1;
     }
     if(DEBUGSERVER) printf("[SERVER] ******************************************************************\n");
-    return 0;
+
+    valutaEsito(logFile, result, "resizeCache");
+    return result;
 }
