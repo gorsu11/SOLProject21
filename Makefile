@@ -7,14 +7,17 @@ TARGETS		= server client
 #GENERA ESEGUIBILI SERVER E CLIENT
 all : $(TARGETS)
 
-server : src/server.c lib/libParsing.a lib/libFunction.a
-	$(CC) $(CFLAGS) $< -o $@ -Llib -lParsing -Llib -lFunction -lpthread
+server : src/server.c lib/libParsing.a lib/libFunction.a lib/libLog.a
+	$(CC) $(CFLAGS) $< -o $@ -Llib -lParsing -Llib -lFunction -Llib -llog -lpthread
 
 client : src/client.c lib/libApi.a lib/libCommand.a
 	$(CC) $(CFLAGS) src/client.c -o $@ -Llib -lApi -Llib -lCommand
 
 objs/parsingFile.o : src/parsingFile.c
 	$(CC) $(CFLAGS) -c src/parsingFile.c -o $@
+
+objs/log.o: src/log.c
+	$(CC) $(CFLAGS) -c src/log.c -o $@
 
 objs/serverFunction.o : src/serverFunction.c
 	$(CC) $(CFLAGS) -c src/serverFunction.c -o $@
@@ -27,6 +30,9 @@ objs/interface.o : src/interface.c
 
 lib/libParsing.a: objs/parsingFile.o
 	ar r lib/libParsing.a objs/parsingFile.o
+
+lib/libLog.a: objs/log.o
+	ar r lib/libLog.a objs/log.o
 
 lib/libFunction.a: objs/serverFunction.o
 	ar r lib/libFunction.a objs/serverFunction.o
@@ -47,12 +53,12 @@ cleanall :
 
 #LANCIA IL PRIMO TEST
 test1 :
-	./test1.sh
+	./test/test1/test1.sh
 
 #LANCIA SECONDO TEST
 test2 :  
-	./test2.sh 	
+	./test/test2/test2.sh 	
 
 #LANCIA TERZO TEST
 test3 : 
-	./test3.sh
+	./test/test3/test3.sh
