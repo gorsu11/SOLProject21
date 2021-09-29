@@ -3,6 +3,7 @@
 
 #include "util.h"
 #include "conn.h"
+#include "log.h"
 
 //--------------- GESTIONE NODI ----------------//
 typedef struct node {
