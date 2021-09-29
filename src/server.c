@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
                     }
 
                     char* timeString = getTime();
-                    CONTROLLA(fprintf(logFile, "********** Nuova connessione: %d\tData: %s **********\n\n", cfd, timeString));
+                    CONTROLLA(fprintf(logFile, "Nuova connessione: %d\tData: %s\n\n", cfd, timeString));
                     free(timeString);
 
                     FD_SET(cfd, &set);
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
                             if (cfd1 == num_fd) num_fd = updatemax(set, num_fd);
 
                             char* timeString = getTime();
-                            CONTROLLA(fprintf(logFile, "********** Connessione chiusa: %d\tData: %s **********\n\n", cfd1, timeString));
+                            CONTROLLA(fprintf(logFile, "Connessione chiusa: %d\tData: %s\n\n", cfd1, timeString));
                             free(timeString);
 
                             close(cfd1);
@@ -257,6 +257,8 @@ int main(int argc, char *argv[]) {
         SYSCALL_PTHREAD(e,pthread_join(master[i],NULL), "Errore join thread");
     }
 
+    CONTROLLA(fprintf(logFile, "Numero di file massimo: %d\n", top_files));
+    CONTROLLA(fprintf(logFile, "Dimensione massima di bytes: %d\n", top_dim));
 
     printf("------------------STATISTICHE SERVER-------------------\n");
     printf("Numero di file massimo = %d\n",top_files);
@@ -619,6 +621,12 @@ void execute (char * request, int cfd,int pfd){
             file* curr = cache;
             for(int i=0; i<num; i++){
                 //invio il path al client
+
+                //if(!DEBUGSERVER) printf("[SERVER] Si blocca qui\n");
+                //char* prova = prendiFile(curr->path, cfd);
+                //if(!DEBUGSERVER) printf("[SERVER] Prova ritorna %s\n", prova);
+                if(DEBUGSERVER) printf("[SERVER] Invio al client il file %s\n", curr->path);
+
                 char path[LEN];
                 memset(path, 0, LEN);
                 sprintf(path, "%s", curr->path);
@@ -629,10 +637,18 @@ void execute (char * request, int cfd,int pfd){
                 memset(conf, 0, LEN);
                 SYSCALL_READ(s,readn(cfd, conf, LEN), "readNFile: socket read response");
 
+                UNLOCK(&lock_cache);
+                aggiungiFile(curr->path, 0, cfd, NULL);
+
+                if(DEBUGSERVER) printf("[SERVER] Il path è %s\n", curr->path);
+                char* testo = prendiFile(curr->path, cfd);
+                if(DEBUGSERVER) printf("[SERVER] Invio al client il testo %s\n", testo);
+                LOCK(&lock_cache);
+
                 //invio size
                 char ssize [LEN];
                 memset(ssize, 0, LEN);
-                sprintf(ssize, "%ld", strlen(curr->data));
+                sprintf(ssize, "%ld", strlen(testo));
                 SYSCALL_WRITE(writen(cfd, ssize, LEN), "readNFile: socket write size");
 
                 //ricevo la conferma
@@ -641,7 +657,7 @@ void execute (char * request, int cfd,int pfd){
                 SYSCALL_READ(s, readn(cfd, conf2, LEN), "readNFile: socket read response");
 
                 //invio file
-                SYSCALL_WRITE(writen(cfd, curr->data, strlen(curr->data)), "readNFile: socket write file");
+                SYSCALL_WRITE(writen(cfd, testo, strlen(testo)), "readNFile: socket write file");
 
                 curr = curr->next;
             }
@@ -874,6 +890,10 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                     if(DEBUGSERVER) printf("[SERVER] Directory non specificata\n");
                 }
 
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "replace"));
+                CONTROLLA(fprintf(logFile, "Pathname: %s\n", temp->path));
+                CONTROLLA(fprintf(logFile, "Bytes eliminati dalla cache: %d\n", (int)strlen(temp->data)));
+
                 free(temp);
                 num_files --;
                 replace ++;
@@ -916,9 +936,9 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                   if(DEBUGSERVER) printf("[SERVER] Directory non specificata\n");
                 }
 
-                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "eliminaFIle"));
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "replace"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", temp->path));
-                CONTROLLA(fprintf(logFile, "Eliminati sulla cache %d Bytes\n", (int)strlen(temp->data)));
+                CONTROLLA(fprintf(logFile, "Bytes eliminati dalla cache: %d\n", (int)strlen(temp->data)));
 
                 free(temp->data);
                 freeList(&(temp->client_open));
@@ -953,7 +973,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 curr->concorrency.waiting = 0;
                 curr->concorrency.writer_active = false;
 
-                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "aggiungiFile"));
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "creaFile"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
                 CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
 
@@ -969,7 +989,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 curr->concorrency.waiting = 0;
                 curr->concorrency.writer_active = false;
 
-                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "lockFile"));
+                CONTROLLA(fprintf(logFile, "Operazione: %s\n", "openlockFile"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
                 CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
             }
@@ -998,7 +1018,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
             node* new;
             CHECKNULL(new, malloc(sizeof(node)), "malloc new");
 
-            CONTROLLA(fprintf(logFile, "Operazione: %s\n", "aggiungiFile"));
+            CONTROLLA(fprintf(logFile, "Operazione: %s\n", "utilizzaFile"));
             CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
             CONTROLLA(fprintf(logFile, "Flag: %d\n", flag));
 
@@ -1078,7 +1098,7 @@ int rimuoviCliente(char* path, int cfd){
 
                 CONTROLLA(fprintf(logFile, "Operazione: %s\n", "rimuoviCliente"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-                CONTROLLA(fprintf(logFile, "Eliminato il cliente %d\n", temp->data));
+                CONTROLLA(fprintf(logFile, "Eliminato il cliente: %d\n", temp->data));
 
                 free(temp);
                 curr->client_write = -1;
@@ -1147,7 +1167,7 @@ int rimuoviFile(char* path, int cfd){
 
             CONTROLLA(fprintf(logFile, "Operazione: %s\n", "rimuoviFile"));
             CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-            CONTROLLA(fprintf(logFile, "Eliminati %d Bytes\n", (int)strlen(curr->data)));
+            CONTROLLA(fprintf(logFile, "Bytes eliminati dalla cache: %d\n", (int)strlen(curr->data)));
 
             if(curr->data != NULL){
                 if(DEBUGSERVER) printf("ENTRA\n");
@@ -1228,6 +1248,7 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
                         break;
                     }
                     else{
+
                         replace ++;
                         //if(DEBUGSERVER) printf("[SERVER] Eseguito il rimpiazzo per la %d volta\n", replace);
                     }
@@ -1245,7 +1266,7 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
                     }
                     CONTROLLA(fprintf(logFile, "Operazione: %s\n", "inserisciDati"));
                     CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-                    CONTROLLA(fprintf(logFile, "Scritti sul file %d Bytes\n", (int)strlen(curr->data)));
+                    CONTROLLA(fprintf(logFile, "Bytes scritti sulla cache: %lu\n", strlen(curr->data)));
                 }
             }
             break;
@@ -1316,7 +1337,7 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
                         }
                         CONTROLLA(fprintf(logFile, "Operazione: %s\n", "appendDati"));
                         CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-                        CONTROLLA(fprintf(logFile, "Scritti sul file %d Bytes\n", (int)strlen(curr->data)));
+                        CONTROLLA(fprintf(logFile, "Bytes scritti sulla cache: %lu\n", strlen(curr->data)));
                     }
                 }
             }
@@ -1340,6 +1361,7 @@ char* prendiFile (char* path, int cfd){
 
     if(path == NULL){
         errno = EINVAL;
+        if(DEBUGSERVER) printf("[SERVER] Entra subito in errore\n");
         valutaEsito(logFile, -1, "prendiFile");
         return NULL;
     }
@@ -1353,30 +1375,42 @@ char* prendiFile (char* path, int cfd){
     writeLogFd(logFile, cfd);
 
     file* curr = cache;
-
-    while(curr != NULL){
+    int trovato = 0;
+    while(curr != NULL && trovato == 0){
+        if(DEBUGSERVER) printf("[SERVER] File %s\n\t File cercato %s\n", curr->path, path);
         if(strcmp(curr->path, path) == 0){
+            if(DEBUGSERVER) printf("[SERVER] Entra nella strcmp\n");
+
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
-                //UNLOCK(&lock_cache);
-                //return NULL;
+                if(DEBUGSERVER) printf("[SERVER] Si ferma qui 1\n");
                 break;
             }
-            //trovato = 1;
+
+            trovato = 1;
+            if(DEBUGSERVER) printf("[SERVER] Trovato è %d\n", trovato);
+
+            //printClient(curr->client_open);
             if(fileOpen(curr->client_open, cfd) == 1){
+                if(DEBUGSERVER) printf("[SERVER] Trovato il file\n");
                 response = curr->data;
+                if(DEBUGSERVER) printf("[SERVER] Response prende %s\n", response);
             }
-            break;
         }
         else{
+            if(DEBUGSERVER) printf("[SERVER] Scorre\n");
             curr = curr->next;
         }
     }
+
+    if(DEBUGSERVER) printf("[SERVER] Esce dal while\n");
+
     CONTROLLA(fprintf(logFile, "Operazione: %s\n", "prendiFile"));
     CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-    CONTROLLA(fprintf(logFile, "Letti %d Bytes\n", (int)strlen(curr->data)));
+    CONTROLLA(fprintf(logFile, "Bytes letti dal file: %d\n", (int)strlen(curr->data)));
 
     int result = 0;
     if(response == NULL){
+        if(!DEBUGSERVER) printf("[SERVER] Response è NULL\n");
         result = -1;
     }
 
@@ -1567,9 +1601,9 @@ int resizeCache(int dim, char* dirname){
             if(DEBUGSERVER) printf("[SERVER] Scritto nel file il buffer passato\n");
         }
 
-        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "resizeCache"));
+        CONTROLLA(fprintf(logFile, "Operazione: %s\n", "replace"));
         CONTROLLA(fprintf(logFile, "File da rimuovere: %s\n", temp->path));
-        CONTROLLA(fprintf(logFile, "Rimossi: %d Bytes\n", (int) strlen(temp->data)));
+        CONTROLLA(fprintf(logFile, "Bytes eliminati dalla cache: %d\n", (int) strlen(temp->data)));
 
         dim_byte = dim_byte - (int)strlen(temp->data);
         num_files--;
