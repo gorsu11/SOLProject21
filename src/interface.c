@@ -191,7 +191,6 @@ int readNFiles(int N, const char* dirname){
     if(dirname != NULL){       //creo la directory se non esiste
         mkdir_p(dirname);
     }
-
     //INVIA IL COMANDO AL SERVER
     char bufsend[LEN];
     memset(bufsend, 0, LEN);
@@ -203,6 +202,7 @@ int readNFiles(int N, const char* dirname){
     memset(bufrec, 0, LEN);
     SYSCALL_EXIT("readn", notused, readn(sockfd, bufrec, LEN), "readn", "");
 
+    if(DEBUGAPI) printf("[INTERFACE] Ricevuto %s\n", bufrec);
 
     char* t = strtok(bufrec, ",");
 
@@ -219,6 +219,7 @@ int readNFiles(int N, const char* dirname){
 
     for(int i=0; i<number; i++){
         //RICEVO PATH
+
         char path[PATH_MAX];
         memset(path, 0, PATH_MAX);
         SYSCALL_EXIT("readn", notused, readn(sockfd, path, LEN), "readn", "");
@@ -238,6 +239,8 @@ int readNFiles(int N, const char* dirname){
         memset(ssize, 0, LEN);
         SYSCALL_EXIT("readn", notused, readn(sockfd, ssize, LEN), "readn", "");
 
+        if(DEBUGAPI) printf("[INTERFACE] Ricevuto %s bytes\n", ssize);
+
         char *t2 = strtok(ssize,",");
         if(strcmp(t2, "-1") == 0){
             t2 = strtok(NULL, ",");
@@ -254,7 +257,10 @@ int readNFiles(int N, const char* dirname){
         CHECKNULL(fbuf, malloc(size_file*sizeof(char)), "malloc fbuf");
         SYSCALL_EXIT("readn", notused, readn(sockfd, fbuf, size_file), "readn", "");
 
+        if(DEBUGAPI) printf("[INTERFACE] Ricevuto\n%s\n", fbuf);
+
         char *t3 = strtok(fbuf,",");
+
         int ritorno3;
         if((ritorno3 = atoi(t3)) != 0){
             t3 = strtok(NULL,",");
@@ -279,6 +285,7 @@ int readNFiles(int N, const char* dirname){
                 fclose(of);
             }
         }
+
         free(fbuf);
     }
 
