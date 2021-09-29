@@ -1,0 +1,180 @@
+Nuova connessione: 7	Data: 29-09-2021 12:00:33
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/prova4.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/prova4.txt
+Bytes scritti sulla cache: 2167737
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/prova4.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Bytes scritti sulla cache: 6488667
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Bytes scritti sulla cache: 1489
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Zacinto.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Zacinto.txt
+Bytes scritti sulla cache: 526
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Zacinto.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Infinito.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Infinito.txt
+Bytes scritti sulla cache: 566
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:33
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Infinito.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: creaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/SanMartino.txt
+Flag: 1
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: inserisciDati
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/SanMartino.txt
+Bytes scritti sulla cache: 383
+Esito inserisciDati: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/SanMartino.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: utilizzaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Flag: 0
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: prendiFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Bytes letti dal file: 1489
+Esito prendiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: utilizzaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Flag: 0
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: prendiFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Bytes letti dal file: 6488667
+Esito prendiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: rimuoviCliente
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/big.txt
+Eliminato il cliente: 7
+Esito rimuoviCliente: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: utilizzaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/SanMartino.txt
+Flag: 0
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: prendiFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/SanMartino.txt
+Bytes letti dal file: 383
+Esito prendiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: utilizzaFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Infinito.txt
+Flag: 0
+Esito aggiungiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:34
+Operazione: prendiFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/poesie/Infinito.txt
+Bytes letti dal file: 566
+Esito prendiFile: POSITIVO
+
+Thread Worker: 123145363845120 	Client fd: 7 	Data: 29-09-2021 12:00:35
+Operazione: rimuoviFile
+Pathname: /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt
+Bytes eliminati dalla cache: 1489
+Esito rimuoviFile: POSITIVO
+
+Connessione chiusa: 7	Data: 29-09-2021 12:00:35
+
+Numero di file massimo: 6
+Dimensione massima di bytes: 8659374

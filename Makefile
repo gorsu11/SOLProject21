@@ -54,11 +54,14 @@ cleanall :
 #LANCIA IL PRIMO TEST
 test1 :
 	./test/test1/test1.sh
+	./statistiche/statistiche.sh ./test/test1/log/log1.txt
 
 #LANCIA SECONDO TEST
 test2 :  
-	./test/test2/test2.sh 	
+	./test/test2/test2.sh
+	./statistiche/statistiche.sh ./test/test2/log/log2.txt 	
 
 #LANCIA TERZO TEST
 test3 : 
 	./test/test3/test3.sh
+	./statistiche/statistiche.sh ./test/test3/log/log3.txt
