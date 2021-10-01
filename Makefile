@@ -8,7 +8,7 @@ TARGETS		= server client
 all : $(TARGETS)
 
 server : src/server.c lib/libParsing.a lib/libFunction.a lib/libLog.a
-	$(CC) $(CFLAGS) $< -o $@ -Llib -lParsing -Llib -lFunction -Llib -llog -lpthread
+	$(CC) $(CFLAGS) $< -o $@ -Llib -lParsing -Llib -lFunction -Llib -lLog -lpthread
 
 client : src/client.c lib/libApi.a lib/libCommand.a
 	$(CC) $(CFLAGS) src/client.c -o $@ -Llib -lApi -Llib -lCommand
