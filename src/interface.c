@@ -217,7 +217,8 @@ int readNFiles(int N, const char* dirname){
     //Invio la conferma al server
     SYSCALL_EXIT("writen", notused, writen(sockfd, "ok", LEN), "writen", "");
 
-    for(int i=0; i<number; i++){
+    int i = 0;
+    for(i=0; i<number; i++){
         //RICEVO PATH
 
         char path[PATH_MAX];
@@ -258,9 +259,9 @@ int readNFiles(int N, const char* dirname){
         SYSCALL_EXIT("readn", notused, readn(sockfd, fbuf, size_file), "readn", "");
 
         if(DEBUGAPI) printf("[INTERFACE] Ricevuto\n%s\n", fbuf);
-
+        
         char *t3 = strtok(fbuf,",");
-
+        
         int ritorno3;
         if((ritorno3 = atoi(t3)) != 0){
             t3 = strtok(NULL,",");
@@ -308,6 +309,9 @@ int writeFile(const char* pathname, const char* dirname){
         return -1;
     }
 
+    //printf("La dirname è %s\n", dirname);
+    //CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
+    
     char buffer[LEN];
     memset(buffer, 0, LEN);
     sprintf(buffer, "writeFile,%s", pathname);
@@ -398,6 +402,8 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
         return -1;
     }
 
+    CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
+    
     char buffer[LEN];
     //memset(buffer, 0, DIM_MSG);
     sprintf(buffer, "appendToFile,%s", pathname);

@@ -53,8 +53,8 @@ int main(int argc, char *argv[]) {
 
     //se qualcosa non va a buon fine prende i valori di default
     if((configuration = getConfig(argv[1])) == NULL){
-        configuration = default_configuration();
-        printf("Presi i valori di default\n");
+        fprintf(stderr, "Errore estrazione valori\n");
+        return -1;
     }
 
     logFile = fopen(configuration->fileLog, "w+");
@@ -101,7 +101,8 @@ int main(int argc, char *argv[]) {
     if(DEBUGSERVER) printf("[SERVER] Creazione dei %d thread Worker\n", configuration->num_thread);
 
     int err;
-    for(int i=0; i<configuration->num_thread; i++){
+    int i = 0;
+    for(i=0; i<configuration->num_thread; i++){
         SYSCALL_PTHREAD(err, pthread_create(&master[i], NULL, Workers, (void*) (&comunication[1])), "pthread_create pool");
     }
 
@@ -112,7 +113,9 @@ int main(int argc, char *argv[]) {
 
 
     //-------------------- CREAZIONE SOCKET --------------------//
-
+    
+    // cancello il socket file se esiste
+    cleanup();
     // se qualcosa va storto ....
     atexit(cleanup);
 
@@ -134,9 +137,6 @@ int main(int argc, char *argv[]) {
     // creo il socket
     SYSCALL_EXIT("socket", listenfd, socket(AF_UNIX, SOCK_STREAM, 0), "socket", "");
 
-    // cancello il socket file se esiste
-    cleanup();
-
     // assegno l'indirizzo al socket
     SYSCALL_EXIT("bind", notused, bind(listenfd, (struct sockaddr*)&serv_addr,sizeof(serv_addr)), "bind", "");
 
@@ -156,7 +156,6 @@ int main(int argc, char *argv[]) {
     while (1) {
 
         rdset = set;
-        //printf("Term: %d\n", term);
         if (select(num_fd+1, &rdset, NULL, NULL, NULL) == -1) {
             if (term == 1){
                 break;
@@ -178,7 +177,7 @@ int main(int argc, char *argv[]) {
         int cfd;
         for (fd=0; fd<=num_fd; fd++) {
             if (FD_ISSET(fd,&rdset)) {
-                if (fd == listenfd) {  //WELCOME SOCKET PRONTO X ACCEPT
+                if (fd == listenfd) {                           //WELCOME SOCKET PRONTO X ACCEPT
                     if ((cfd = accept(listenfd, NULL, 0)) == -1) {
                         if (term == 1){
                           break;
@@ -209,13 +208,13 @@ int main(int argc, char *argv[]) {
                         num_client--;
                     }
 
-                } else if (fd == comunication[0]) { //CLIENT DA REINSERIRE NEL SET -- PIPE PRONTA IN LETTURA
+                } else if (fd == comunication[0]) {             //CLIENT DA REINSERIRE NEL SET -- PIPE PRONTA IN LETTURA
                     int cfd1;
                     int len;
                     int flag;
                     if ((len = readn(comunication[0], &cfd1, sizeof(cfd1))) > 0) { //LEGGO UN INTERO == 4 BYTES
                         SYSCALL_EXIT("readn", notused, readn(comunication[0], &flag, sizeof(flag)),"Master : read pipe", "");
-                        if (flag == -1) { //CLIENT TERMINATO LO RIMUOVO DAL SET DELLA SELECT
+                        if (flag == -1) {                       //CLIENT TERMINATO LO RIMUOVO DAL SET DELLA SELECT
                             //printf("Closing connection with client...\n");
                             FD_CLR(cfd1, &set);
                             if (cfd1 == num_fd) num_fd = updatemax(set, num_fd);
@@ -239,27 +238,28 @@ int main(int argc, char *argv[]) {
                         exit(EXIT_FAILURE);
                     }
 
-                } else { //SOCKET CLIENT PRONTO X READ
-                    //QUINDI INSERISCO FD SOCKET CLIENT NELLA CODA
+                } else {                                            //SOCKET CLIENT PRONTO X READ
+                                                                    //QUINDI INSERISCO FD SOCKET CLIENT NELLA CODA
                     insertNode(&coda,fd);
                     FD_CLR(fd,&set);
-                    //printf("Il cfd del client connesso è %d\n", fd);
                 }
             }
         }
         if (soft_term==1) break;
     }
     printf("Closing server...\n");
-    for (int i=0;i<configuration->num_thread;i++) {
+    
+    int j = 0;
+    for (j=0;j<configuration->num_thread;j++) {
         insertNode(&coda,-1);
     }
-    for (int i=0;i<configuration->num_thread;i++) {
-        SYSCALL_PTHREAD(e,pthread_join(master[i],NULL), "Errore join thread");
+    for (j=0;j<configuration->num_thread;j++) {
+        SYSCALL_PTHREAD(e,pthread_join(master[j],NULL), "Errore join thread");
     }
 
     CONTROLLA(fprintf(logFile, "Numero di file massimo: %d\n", top_files));
     CONTROLLA(fprintf(logFile, "Dimensione massima di bytes: %d\n", top_dim));
-
+    
     printf("------------------STATISTICHE SERVER-------------------\n");
     printf("Numero di file massimo = %d\n",top_files);
     printf("Dimensione massima = %f Mbytes\n",(top_dim/pow(10,6)));
@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
 
     printf("connection done\n");
 
-
+    return 0;
 }
 
 void* Workers(void *argument){
@@ -295,7 +295,7 @@ void* Workers(void *argument){
 
         //SERVO IL CLIENT
         int len;
-        int fine; //FLAG COMUNICATO AL MASTER PER SAPERE QUANDO TERMINA IL CLIENT
+        int fine;                   //FLAG COMUNICATO AL MASTER PER SAPERE QUANDO TERMINA IL CLIENT
 
         if((len = readn(cfd, request, LEN)) == 0){
             fine = -1;
@@ -388,7 +388,6 @@ void execute (char * request, int cfd,int pfd){
         }
 
         else if(strcmp(token, "removeFile") == 0){
-
             if(DEBUGSERVER) printf("[SERVER] Entro in removeFile\n");
             //estraggo il valore
             token = strtok(NULL, ",");
@@ -542,7 +541,6 @@ void execute (char * request, int cfd,int pfd){
 
         else if(strcmp(token, "readFile") == 0){
             //estraggo gli argomenti
-
             if(DEBUGSERVER) printf("[SERVER] Entro in readFile\n");
 
             token = strtok(NULL, ",");
@@ -591,7 +589,6 @@ void execute (char * request, int cfd,int pfd){
             token = strtok(NULL, ",");
             int num = atoi(token);
 
-
             if(DEBUGSERVER) printf("[SERVER] File Richiesti: %d\n[SERVER] File esistenti: %d\n", num, num_files);
 
             LOCK(&lock_cache);
@@ -619,14 +616,11 @@ void execute (char * request, int cfd,int pfd){
             if(DEBUGSERVER) printf("[SERVER] Il responso del client è %s\n", conf);
             //invio gli N files
             file* curr = cache;
-            for(int i=0; i<num; i++){
+            int i = 0;
+            for(i=0; i<num; i++){
                 //invio il path al client
-
-                //if(!DEBUGSERVER) printf("[SERVER] Si blocca qui\n");
-                //char* prova = prendiFile(curr->path, cfd);
-                //if(!DEBUGSERVER) printf("[SERVER] Prova ritorna %s\n", prova);
                 if(DEBUGSERVER) printf("[SERVER] Invio al client il file %s\n", curr->path);
-
+                
                 char path[LEN];
                 memset(path, 0, LEN);
                 sprintf(path, "%s", curr->path);
@@ -636,15 +630,15 @@ void execute (char * request, int cfd,int pfd){
                 char conf [LEN];
                 memset(conf, 0, LEN);
                 SYSCALL_READ(s,readn(cfd, conf, LEN), "readNFile: socket read response");
-
+                
                 UNLOCK(&lock_cache);
                 aggiungiFile(curr->path, 0, cfd, NULL);
-
+                
                 if(DEBUGSERVER) printf("[SERVER] Il path è %s\n", curr->path);
                 char* testo = prendiFile(curr->path, cfd);
                 if(DEBUGSERVER) printf("[SERVER] Invio al client il testo %s\n", testo);
                 LOCK(&lock_cache);
-
+                
                 //invio size
                 char ssize [LEN];
                 memset(ssize, 0, LEN);
@@ -667,9 +661,7 @@ void execute (char * request, int cfd,int pfd){
 
         else if(strcmp(token, "lockFile") == 0){
             //estraggo gli argomenti
-
             if(DEBUGSERVER) printf("[SERVER] Entro in lockFile\n");
-
             token = strtok(NULL, ",");
             char path[PATH_MAX];
             strcpy(path, token);
@@ -697,7 +689,6 @@ void execute (char * request, int cfd,int pfd){
 
         else if(strcmp(token, "unlockFile") == 0){
             //estraggo gli argomenti
-
             if(DEBUGSERVER) printf("[SERVER] Entro in unlockFile\n");
 
             token = strtok(NULL, ",");
@@ -791,7 +782,6 @@ int removeNode (node ** list) {
 //SIGINT,SIGQUIT --> TERMINA SUBITO (GENERA STATISTICHE)
 //SIGHUP --> NON ACCETTA NUOVI CLIENT, ASPETTA CHE I CLIENT COLLEGATI CHIUDANO CONNESSIONE
 static void gestore_term (int signum) {
-    //printf("Entro in gestione_term con segnale %d\n", signum);
     if (signum == SIGINT || signum == SIGQUIT) {
         term = 1;
     } else if (signum == SIGHUP) {
@@ -803,7 +793,8 @@ static void gestore_term (int signum) {
 //Funzione di utility per la gestione della select
 //ritorno l'indice massimo tra i descrittori attivi
 int updatemax(fd_set set, int fdmax) {
-    for(int i=(fdmax-1); i>=0; i--)
+    int i = 0;
+    for(i=(fdmax-1); i>=0; i--)
     if (FD_ISSET(i, &set)) return i;
     assert(1==0);
     return -1;
@@ -863,7 +854,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 if(DEBUGSERVER) printf("[SERVER] Elimino il file %s\n", temp->path);
 
                 if(DEBUGSERVER) printf("[SERVER] La lunghezza della directory è %lu\n", strlen(dirname));
-                if(strcmp(dirname, "(null)") != 0){
+                if(strlen(dirname) != 0){
                     if(DEBUGSERVER) printf("[SERVER] Rimuovo il file %s\n", temp->path);
                     if(DEBUGSERVER) printf("[SERVER] La dirname è %s\n", dirname);
                     char path[PATH_MAX];
@@ -893,7 +884,7 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
                 CONTROLLA(fprintf(logFile, "Operazione: %s\n", "replace"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", temp->path));
                 CONTROLLA(fprintf(logFile, "Bytes eliminati dalla cache: %d\n", (int)strlen(temp->data)));
-
+                
                 free(temp);
                 num_files --;
                 replace ++;
@@ -909,7 +900,8 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
 
                 if(DEBUGSERVER) printf("[SERVER] Elimino il file %s\n", temp->path);
 
-                if(strcmp(dirname, "(null)") != 0){
+                //printf("%d\n", strlen(dirname));
+                if(strlen(dirname) != 0){
                     if(DEBUGSERVER) printf("[SERVER] Rimuovo il file %s\n", temp->path);
                     if(DEBUGSERVER) printf("[SERVER] La dirname è %s\n", dirname);
                     char path[PATH_MAX];
@@ -1248,7 +1240,7 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
                         break;
                     }
                     else{
-
+                        
                         replace ++;
                         //if(DEBUGSERVER) printf("[SERVER] Eseguito il rimpiazzo per la %d volta\n", replace);
                     }
@@ -1380,15 +1372,15 @@ char* prendiFile (char* path, int cfd){
         if(DEBUGSERVER) printf("[SERVER] File %s\n\t File cercato %s\n", curr->path, path);
         if(strcmp(curr->path, path) == 0){
             if(DEBUGSERVER) printf("[SERVER] Entra nella strcmp\n");
-
+            
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 if(DEBUGSERVER) printf("[SERVER] Si ferma qui 1\n");
                 break;
             }
-
+            
             trovato = 1;
             if(DEBUGSERVER) printf("[SERVER] Trovato è %d\n", trovato);
-
+            
             //printClient(curr->client_open);
             if(fileOpen(curr->client_open, cfd) == 1){
                 if(DEBUGSERVER) printf("[SERVER] Trovato il file\n");
@@ -1401,9 +1393,9 @@ char* prendiFile (char* path, int cfd){
             curr = curr->next;
         }
     }
-
+    
     if(DEBUGSERVER) printf("[SERVER] Esce dal while\n");
-
+    
     CONTROLLA(fprintf(logFile, "Operazione: %s\n", "prendiFile"));
     CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
     CONTROLLA(fprintf(logFile, "Bytes letti dal file: %d\n", (int)strlen(curr->data)));
