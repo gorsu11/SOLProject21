@@ -6,48 +6,40 @@ then
     exit 1
 fi
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di scritture
 num_writeFile=$(grep "Esito inserisciDati: POSITIVO" $1 | grep -v "/" | wc -l)
 echo -e "Numero di writeFile: $num_writeFile"
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di append
 num_appendFile=$(grep "Esito appendDati: POSITIVO" $1 | grep -v "/" | wc -l)
 echo "Numero di appendFile: $num_appendFile"
 echo -e "Numero totale di scritture: $(($num_writeFile + $num_appendFile))\n"
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di close
 num_closeFile=$(grep "Esito rimuoviCliente: POSITIVO" $1 | grep -v "/" | wc -l)
 echo "Numero di closeFile: $num_closeFile"
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di read
 num_readFile=$(grep "Esito prendiFile: POSITIVO" $1 | grep -v "/" | wc -l)
 echo -e "Numero totale di read: $(($num_readFile))\n"
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di lock
 echo -n "Numero totale di lockFile: "
 grep "Esito bloccaFile: POSITIVO" $1 | grep -v "/" | wc -l
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di open-lock
 echo -n "Numero totale di open-lock: "
 grep "Operazione: openlockFile" $1 | grep -v "/" | wc -l
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di unlock
 echo -n "Numero totale di unlockFile: "
 grep "Esito sbloccaFile: POSITIVO" $1 | grep -v "/" | wc -l
 
-### STAMPA CORRETTAMENTE ###
 #stampa il numero di replace
 num_replace=$(grep "replace" $1 | grep -v "/" | wc -l)
 echo -e "\nNumero totale di file espulsi: $num_replace\n"
 
-### STAMPA CORRETTAMENTE ###
+#Somma il numero di bytes scritti sulla cache
 tot_bytes_writes=$(grep -Eo "Bytes scritti sulla cache: [0-9]+" $1 | grep -Eo "[0-9]+" | { sum=0; while read num; do ((sum+=num)); done; echo $sum; } )
 
 #Stampa numero di bytes scritti
@@ -64,7 +56,6 @@ if [ ${num_writeFile} -gt 0 ]; then
 fi
 
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di bytes letti
 tot_bytes_reads=$(grep -Eo "Bytes letti dal file: [0-9]+" $1 | grep -Eo "[0-9]+" | { sum=0; while read num; do ((sum+=num)); done; echo $sum; } )
 #se non è stato trovato nessun valore ==> num_totalCache=0
@@ -79,14 +70,12 @@ if [ ${num_readFile} -gt 0 ]; then
     echo "Media dei bytes letti: ${media_bytesLetti}"
 fi
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero totale di file creati
 echo -n "Numero totale file creati: "
 grep "creaFile" $1 | wc -l
 echo ""
 
 
-### STAMPA CORRETTAMENTE ###
 #Stampa numero di richieste per ogni thread
 for i in $(grep -Eo 'Thread Worker: \w+' $1 | grep -v "/" | cut -d " " -f3 | sort -n -u); do
 
