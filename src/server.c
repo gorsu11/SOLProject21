@@ -900,7 +900,6 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
 
                 if(DEBUGSERVER) printf("[SERVER] Elimino il file %s\n", temp->path);
 
-                //printf("%d\n", strlen(dirname));
                 if(strlen(dirname) != 0){
                     if(DEBUGSERVER) printf("[SERVER] Rimuovo il file %s\n", temp->path);
                     if(DEBUGSERVER) printf("[SERVER] La dirname è %s\n", dirname);
