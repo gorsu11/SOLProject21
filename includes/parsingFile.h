@@ -11,7 +11,7 @@ typedef struct config_File{
     size_t sizeBuff;                        //spazio di memoria
     unsigned int num_files;                 //numero massimo dei file possibili
     char *socket_name;                      //nome della socket
-    char* fileLog;
+    char* fileLog;                          //nome del file di log
 } config;
 
 long isNumberParser(const char* s);

@@ -19,16 +19,16 @@ typedef struct lockFile{
     unsigned int waiting;
     bool writer_active;
 } lockFile;
-//----------------------------------------------//
+//-----------------------------------------------------//
 
 //--------------- GESTIONE FILE ----------------//
 typedef struct file {
     char path[PATH_MAX];            //nome
-    char * data;                    //contenuto file
-    node * client_open;             //lista client che lo hanno aperto
+    char* data;                     //contenuto file
+    node* client_open;              //lista client che lo hanno aperto
 
-    int lock_flag;                 //variabile che mi tiene conto se un file è in lock da parte di un client
-    node* testa_lock;
+    int lock_flag;                  //variabile che mi tiene conto se un file è in lock da parte di un client
+    node* testa_lock;               //lista che mi tiene conto dei client in testa per la lock
     node* coda_lock;                //lista che mi tiene conto dei client in coda per la lock
     lockFile concorrency;           //per la gestione della concorrenza
 
@@ -37,11 +37,13 @@ typedef struct file {
 } file;
 //----------------------------------------------//
 
+
+//-------------------- FUNZIONI SOLO DICHIARATE --------------------//
 void insertNode (node ** list, int data);
 int removeNode (node ** list);
 int updatemax(fd_set set, int fdmax);
 
-//-------------------- FUNZIONI SOLO DICHIARATE --------------------//
+
 int aggiungiFile(char* path, int flag, int cfd, char* dirname);
 int rimuoviCliente(char* path, int cfd);
 int rimuoviFile(char* path, int cfd);
@@ -69,8 +71,10 @@ void push(node **testa, node **coda, int data);
 int pop(node **testa, node **coda);
 int find(node** testa, int data);
 int free_L(node** testa, node** coda);
+void freeCache (file* cache);
 
 void rwLock_start(lockFile* file);
 void rwLock_end(lockFile* file);
+//----------------------------------------------------------------//
 
 #endif /* serverFunction_h */

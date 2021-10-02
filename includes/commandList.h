@@ -4,8 +4,8 @@
 #include "util.h"
 
 typedef struct node {
-    char * cmd;
-    char * arg;
+    char * cmd;                 //comando passato
+    char * arg;                 //argomento passato
     struct node * next;
 } node;
 
