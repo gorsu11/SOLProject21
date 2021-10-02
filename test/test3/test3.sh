@@ -16,7 +16,7 @@ n=0
 i=1
 
 while [ $(date +%s) -lt $endTime ]; do
-    ./client -f "socket_name" -W testfile/monologhi/Joker.txt,testfile/prova4.txt -l /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt -r /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt -u /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt -c /Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/monologhi/Joker.txt,/Users/gorsu/Desktop/SOLProject21/SOLProject21/testfile/prova4.txt
+    ./client -f "socket_name" -W testfile/monologhi/Joker.txt,testfile/prova4.txt -l /home/xubuntu/Scrivania/SOLProject21/testfile/monologhi/Joker.txt -r /home/xubuntu/Scrivania/SOLProject21/testfile/monologhi/Joker.txt -u /home/xubuntu/Scrivania/SOLProject21/testfile/monologhi/Joker.txt -c /home/xubuntu/Scrivania/SOLProject21/testfile/monologhi/Joker.txt,/home/xubuntu/Scrivania/SOLProject21/testfile/prova4.txt
     (( n++ ))
     (( i++ ))
 done
