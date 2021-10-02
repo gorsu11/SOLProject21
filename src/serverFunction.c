@@ -136,10 +136,12 @@ void freeList(node ** head) {
 int fileOpen(node* list, int cfd) {
     node* curr = list;
     while (curr != NULL) {
+        //printf("Prendo %d e cerco %d\n", curr->data, cfd);
         if (curr->data == cfd){
             return 1;
         }
     }
+    //printf("Ritorna 0\n");
     return 0;
 }
 
@@ -153,6 +155,19 @@ void printClient (node * list) {
         curr = curr->next;
     }
     printf("\n");
+}
+
+void freeCache (file* cache) {
+    file * tmp;
+    file * curr = cache;
+    while (curr != NULL) {
+        tmp=curr;
+        freeList(&(curr->client_open));
+        free(curr->data);
+        curr = curr->next;
+        free(tmp);
+    }
+    cache = NULL;
 }
 
 int mkdir_p(const char *path) {
