@@ -64,7 +64,7 @@ if [ ${num_writeFile} -gt 0 ]; then
 fi
 
 
-##### NON CONTA IL NUMERO DI BYTE LETTI #####
+### STAMPA CORRETTAMENTE ###
 #Stampa numero di bytes letti
 tot_bytes_reads=$(grep -Eo "Bytes letti dal file: [0-9]+" $1 | grep -Eo "[0-9]+" | { sum=0; while read num; do ((sum+=num)); done; echo $sum; } )
 #se non è stato trovato nessun valore ==> num_totalCache=0

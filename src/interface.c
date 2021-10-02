@@ -259,9 +259,7 @@ int readNFiles(int N, const char* dirname){
         SYSCALL_EXIT("readn", notused, readn(sockfd, fbuf, size_file), "readn", "");
 
         if(DEBUGAPI) printf("[INTERFACE] Ricevuto\n%s\n", fbuf);
-        
         char *t3 = strtok(fbuf,",");
-        
         int ritorno3;
         if((ritorno3 = atoi(t3)) != 0){
             t3 = strtok(NULL,",");
@@ -309,9 +307,10 @@ int writeFile(const char* pathname, const char* dirname){
         return -1;
     }
 
-    //printf("La dirname è %s\n", dirname);
-    //CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
-    
+    if(dirname == NULL){
+        CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
+    }
+
     char buffer[LEN];
     memset(buffer, 0, LEN);
     sprintf(buffer, "writeFile,%s", pathname);
@@ -377,10 +376,12 @@ int writeFile(const char* pathname, const char* dirname){
         sprintf(tmp1, "%s", dirname);
         SYSCALL_EXIT("writen", notused, writen(sockfd, tmp1, LEN), "writen", "");
 
+
         //RISPOSTA SERVER
         char result[LEN];
         memset(result, 0, LEN);
         SYSCALL_EXIT("readn", notused, readn(sockfd, result, LEN), "readn", "");
+
 
         char * t1;
         t1 = strtok(result,",");
@@ -403,7 +404,6 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     }
 
     CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
-    
     char buffer[LEN];
     //memset(buffer, 0, DIM_MSG);
     sprintf(buffer, "appendToFile,%s", pathname);
