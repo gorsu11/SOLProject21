@@ -86,20 +86,6 @@ config* getConfig(const char* string){
     return configuration;
 }
 
-
-//Nel caso di errore vado a prendere dei parametri di default
-config* default_configuration(){
-    config* configuration = malloc(sizeof(config));
-    configuration->num_files = 10;
-    configuration->num_thread = 1;
-    configuration->sizeBuff = 10000;
-    CHECKNULL(configuration->socket_name, malloc(LENSOCK), "malloc");
-    strcmp(configuration->socket_name, SOCKNAME);
-    CHECKNULL(configuration->fileLog, malloc(BUFSIZE), "malloc");
-    strcmp(configuration->fileLog, FILE_LOG);
-    return configuration;
-}
-
 //Stampa la struttura
 void stampa(config* configuration){
     printf("Numero thread: %d\n", configuration->num_thread);
@@ -115,6 +101,7 @@ int freeConfig(config* configuration){
         configuration->num_files = 0;
         configuration->sizeBuff = 0;
         configuration->num_thread = 0;
+
         if(configuration->socket_name != NULL){
             char *string = configuration->socket_name;
             free(string);
