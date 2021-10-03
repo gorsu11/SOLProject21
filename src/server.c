@@ -802,14 +802,11 @@ int updatemax(fd_set set, int fdmax) {
 
 
 //------------- FUNZIONI PER GESTIONE LA CACHE FILE -------------//
-/*
-    0 -> PROVA AD APRIRE IL FILE IN LETTURA E SCRITTURA
-    1 -> O_CREATE
-    2 -> O_LOCK
-    3 -> O_CREATE & O_LOCK
 
+/*
+    Aggiunge un file in testa alla lista, controllando che il numero di file presenti sia inferiore al massimo
+    Ritorna 0 se ha successo, -1 se il file non esiste, -2 se si vuole creare un file gia esistente
  */
-//INSERIMENTO IN TESTA, RITORNO 0 SE HO SUCCESSO, -1 SE FALLITA APERTURA FILE, -2 SE FALLITA CREAZIONE FILE
 int aggiungiFile(char* path, int flag, int cfd, char* dirname){
 
     if(path == NULL){
@@ -1037,6 +1034,10 @@ int aggiungiFile(char* path, int flag, int cfd, char* dirname){
     return result;
 }
 
+/*
+    Rimuove un client dalla lista di client_open di un file
+    Ritorna 0 se ha successo, -1 se il file non esiste
+ */
 int rimuoviCliente(char* path, int cfd){
 
     if(path == NULL){
@@ -1116,6 +1117,10 @@ int rimuoviCliente(char* path, int cfd){
     return result;
 }
 
+/*
+    Rimuove un file dalla cache
+    Ritorna 0 se ha successo, -1 se il file non esiste, -2 se il file è lockato da un altro client
+ */
 int rimuoviFile(char* path, int cfd){
 
     if(path == NULL){
@@ -1190,7 +1195,10 @@ int rimuoviFile(char* path, int cfd){
     return result;
 }
 
-//RITONA 0 SE SI HA SUCCESSO, -1 SE IL FILE NON ESISTE, -2 SE L OPERAIONE NON È PERMESSA, -3 SE FILE È TROPPO GRANDE
+/*
+    Aggiunge i dati ad il file con pathname path
+    Ritorna 0 se ha successo, -1 se il file non esiste, -2 se l'operazione non è permessa, -3 se il file è troppo grande e -4 se il file è satto lockato da un altro client
+ */
 int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
 
     if(path == NULL){
@@ -1213,8 +1221,6 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 result = -4;
-                //UNLOCK(&lock_cache);
-                //return result;
                 break;
             }
 
@@ -1236,7 +1242,6 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
                     else{
 
                         replace ++;
-                        //if(DEBUGSERVER) printf("[SERVER] Eseguito il rimpiazzo per la %d volta\n", replace);
                     }
                     if(DEBUGSERVER) printf("[SERVER] ********* Chiama resizeCache con size %d e directory %s *********\n", size, dirname);
                 }
@@ -1271,6 +1276,10 @@ int inserisciDati(char* path, char* data, int size, int cfd, char* dirname){
     return result;
 }
 
+/*
+    Appende i dati ad il file con pathname path
+    Ritorna 0 se ha successo, -1 se il file non esiste, -2 se l'operazione non è permessa, -3 se il file è troppo grande e -4 se il file è satto lockato da un altro client
+ */
 int appendDati(char* path, char* data, int size, int cfd, char* dirname){
 
     if(path == NULL){
@@ -1292,8 +1301,6 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
                 result = -4;
-                //UNLOCK(&lock_cache);
-                //return result;
                 break;
             }
             trovato = 1;
@@ -1343,6 +1350,10 @@ int appendDati(char* path, char* data, int size, int cfd, char* dirname){
     return result;
 }
 
+/*
+    Cerca un file all'interno della cache
+    Ritorna il testo del file se ha successo, NULL altrimenti
+*/
 char* prendiFile (char* path, int cfd){
 
     if(path == NULL){
@@ -1406,7 +1417,10 @@ char* prendiFile (char* path, int cfd){
     return response;
 }
 
-//RITORNA -1 NEL CASO IN CUI NON TROVI IL FILE, RITORNA -2 SE IL FILE È GIA LOCKED E RITORNA 0 SE HA SUCCESSO
+/*
+    Blocca il file con pathname path da parte del client cfd
+    Ritorna 0 se ha successo, -1 se l'argomento passato è errato, -2 se il file è satto lockato da un altro client e  -3 se il file non esiste
+ */
 int bloccaFile(char* path, int cfd){
 
     if(path == NULL){
@@ -1471,6 +1485,10 @@ int bloccaFile(char* path, int cfd){
     return result;
 }
 
+/*
+    Sblocca il file con pathname path da parte del client cfd
+    Ritorna 0 se ha successo, -1 se l'argomento passato è errato e -2 se il file non esiste
+ */
 int sbloccaFile(char* path, int cfd){
 
     if(path == NULL){

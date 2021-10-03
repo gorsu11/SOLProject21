@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 
     node* curr = lis;
 
-    //gestisco i comandi mancanti (-w -W -r -R -c -l -u)
+    //gestisco i comandi mancanti (-w -W -r -R -c -l -u -D -d)
     while(curr != NULL){
         usleep(1000* tms);
 

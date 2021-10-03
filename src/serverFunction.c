@@ -1,5 +1,7 @@
 #include "../includes/serverFunction.h"
 
+//Funzione che aggiunge elemento in coda alle due liste
+//Ritorna errore se l'elemento da inserire è NULL
 void push(node **testa, node **coda, int data){
     node* new;
     CHECKNULL(new, malloc(sizeof(node)), "malloc push");
@@ -22,6 +24,8 @@ void push(node **testa, node **coda, int data){
     }
 }
 
+//Funzione che rimuove in testa l'elemento della lista
+//Ritorna il valore dell'elemento se va a buon fine, altrimenti ritorna un errore
 int pop(node **testa, node **coda){
     if(*testa != NULL){
         int value = (*testa)->data;
@@ -39,6 +43,8 @@ int pop(node **testa, node **coda){
     }
 }
 
+//Funzione che ricerca un elemento in una lista
+//Ritorna 1 se lo trova, 0 altrimenti
 int find(node** testa, int data){
     node* curr = *testa;
     while(curr != NULL){
@@ -53,7 +59,7 @@ int find(node** testa, int data){
 }
 
 
-
+//Funzione per gestire gli accessi concorrenti ad un file
 void rwLock_start(lockFile* file){
     file->waiting ++;
     if(DEBUGSERVER) printf("[SERVER] I clienti in attesa sono %d e writer_active è %d\n", file->waiting, file->writer_active);
@@ -64,6 +70,7 @@ void rwLock_start(lockFile* file){
     file->writer_active = true;
 }
 
+
 void rwLock_end(lockFile* file){
     //printf("%d\n", file->waiting);
     file->waiting --;
@@ -73,7 +80,8 @@ void rwLock_end(lockFile* file){
 }
 
 
-
+//Funzione che imposta il flag di lock ad un file
+//Ritorna 0 se va a buon fine, -1 se l'elemento non è in coda, -2 se l'elemento è gia presente nella coda
 int setLock(file* curr, int cfd){
     if (curr->lock_flag == -1){
         curr->lock_flag = cfd;
@@ -92,6 +100,8 @@ int setLock(file* curr, int cfd){
     return 0;
 }
 
+//Funzione che resetta il flag di lock di un file
+//Ritorna 0 se va a buon fine, -1 altrimenti
 int setUnlock(file* curr, int cfd){
     if(curr->testa_lock == NULL){
         curr->lock_flag = -1;
@@ -106,6 +116,7 @@ int setUnlock(file* curr, int cfd){
 
 //-------------------- FUNZIONI DI UTILITY PER LA CACHE --------------------//
 
+//Stampa la lista dei file presenti sulla cache
 void printFile (file* cache) {
     printf ("Lista File : \n");
     fflush(stdout);
@@ -122,6 +133,7 @@ void printFile (file* cache) {
     }
 }
 
+//Funzione che libera la lista
 void freeList(node ** head) {
     node* temp;
     node* curr = *head;
@@ -133,18 +145,19 @@ void freeList(node ** head) {
     *head = NULL;
 }
 
+//Funzione che cerca all'interno della lista un valore
+//Ritorna 1 se presente, 0 altrimenti
 int fileOpen(node* list, int cfd) {
     node* curr = list;
     while (curr != NULL) {
-        //printf("Prendo %d e cerco %d\n", curr->data, cfd);
         if (curr->data == cfd){
             return 1;
         }
     }
-    //printf("Ritorna 0\n");
     return 0;
 }
 
+//Stampa la lista dei client che hanno aperto un file
 void printClient (node * list) {
     node * curr = list;
     printf("APERTO DA : ");
@@ -157,6 +170,7 @@ void printClient (node * list) {
     printf("\n");
 }
 
+//Libera la memoria da tutti i file presenti nella cache
 void freeCache (file* cache) {
     file * tmp;
     file * curr = cache;

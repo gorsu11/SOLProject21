@@ -1,6 +1,7 @@
 #include "../includes/log.h"
 
 
+//Stampa nel file di log il thread che sta lavorando, il client che ha fatto la richiesta e l'ora e la data di quando la richiesta è stata fatta.
 void writeLogFd(FILE* log, int cfd){
     if(log != NULL){
         time_t timer;
@@ -17,6 +18,7 @@ void writeLogFd(FILE* log, int cfd){
     }
 }
 
+//Restituisce la stringa con la data e l'ora attuale
 char* getTime(){
     time_t timer;
     char *timeString = malloc(sizeof(char) * 20);
@@ -29,6 +31,7 @@ char* getTime(){
 }
 
 
+//Stampa ESITO POSITIVO se il valore passato in ingresso "value" è diverso da -1, altrimenti stampa ESITO NEGATIVO
 void valutaEsito(FILE* log, int value, char* text){
     if(value >= 0){
         if(fprintf(log, "Esito %s: POSITIVO\n\n", text) == -1){

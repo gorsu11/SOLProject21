@@ -1,5 +1,6 @@
 #include "../includes/commandList.h"
 
+//Funzione che aggiunge alla lita un comando con il suo argomento
 void addList (node** list,char* cmd, char* arg) {
     node* new;
     CHECKNULL(new, malloc(sizeof(node)), "malloc");
@@ -26,6 +27,7 @@ void addList (node** list,char* cmd, char* arg) {
     curr->next = new;
 }
 
+//Funzione che stampa gli argomenti della lista
 void printList (node* list) {
     node* curr = list;
     while(curr!=NULL) {
@@ -34,6 +36,8 @@ void printList (node* list) {
     }
 }
 
+//Funzione che cerca il comando all'interno della lista
+//Ritorna 1 se il comando è stato trovato, 0 altrimenti
 int containCMD (node ** list, char * cmd, char ** arg) {
 
     node * curr = *list;
@@ -70,6 +74,7 @@ int containCMD (node ** list, char * cmd, char ** arg) {
 
 }
 
+//Funzione che libera la lista
 void freeList (node** list) {
     node* tmp;
     while (*list!=NULL) {

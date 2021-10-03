@@ -2,6 +2,8 @@
 #include "../includes/conn.h"
 #include "../includes/util.h"
 
+//Apre la connessione con il server tarmite una socket
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int openConnection(const char* sockname, int msec, const struct timespec abstime){
     if((!sockname) || (msec <=0)){
         errno = EINVAL;
@@ -41,6 +43,8 @@ int openConnection(const char* sockname, int msec, const struct timespec abstime
 
 }
 
+//Chiude la connessione con una socket
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int closeConnection(const char* sockname){
     if(!sockname || strncmp(sockname, SOCKNAME, LENSOCK)){
         errno = EINVAL;
@@ -48,7 +52,7 @@ int closeConnection(const char* sockname){
     }
 
     if(connection_socket == 0){
-        errno = ENOTCONN;     //TODO: da modificare opportunamente
+        errno = ENOTCONN;
         return -1;
     }
 
@@ -63,6 +67,9 @@ int closeConnection(const char* sockname){
     return 0;
 }
 
+
+//Apre il file pathname con i flags specificati
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int openFile(const char* pathname, int flags){
     if(DEBUGAPI) fprintf(stdout, "[INTERFACE] Apertura file...\n");
 
@@ -101,6 +108,8 @@ int openFile(const char* pathname, int flags){
     return 0;
 }
 
+//Chiude il file pathname
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int closeFile(const char* pathname){
 
     if(DEBUGAPI) printf("[INTERFACE] Entra in closeFile\n");
@@ -132,6 +141,8 @@ int closeFile(const char* pathname){
     return 0;
 }
 
+//Funzione che va a leggere il contenuto del file pathname e lo va ad inserire nel buffer
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int readFile(const char* pathname, void** buf, size_t* size){
     if(DEBUGAPI) fprintf(stdout, "[INTERFACE] Inizio readFile\n");
     if(!pathname || connection_socket == 0){
@@ -182,6 +193,8 @@ int readFile(const char* pathname, void** buf, size_t* size){
     return 0;
 }
 
+//Funzione che va a leggere N file dalla memoria e in caso sia specificata va a scriverli nella directory dirname
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int readNFiles(int N, const char* dirname){
     if(connection_socket == 0){
         errno = ENOTCONN;
@@ -291,6 +304,9 @@ int readNFiles(int N, const char* dirname){
     return number;
 }
 
+//Funzione che va a scrivere i dati nel file pathname e nel caso di replace di file, i file da eliminare vengono
+//salvati in dirname se è specificata, altrimenti vengono buttati via
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int writeFile(const char* pathname, const char* dirname){
     if(DEBUGAPI) printf("[INTERFACE] Il pathname è: %s\n[INTERFACE] La dirname è: %s\n", pathname, dirname);
 
@@ -397,6 +413,9 @@ int writeFile(const char* pathname, const char* dirname){
     return 0;
 }
 
+//Funzione che va a inserire i dati nel file pathname e nel caso di replace di file, i file da eliminare vengono
+//salvati in dirname se è specificata, altrimenti vengono buttati via
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int appendToFile(const char* pathname, void* buf, size_t size, const char* dirname){
     if(!pathname || connection_socket == 0){
         errno = EINVAL;
@@ -407,6 +426,10 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     char buffer[LEN];
     //memset(buffer, 0, DIM_MSG);
     sprintf(buffer, "appendToFile,%s", pathname);
+    
+    if(dirname == NULL){
+        CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
+    }
 
     SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
@@ -461,6 +484,8 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     return 0;
 }
 
+//Funzione che va a bloccare il file pathname da parte del cliente che lo richiede
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int lockFile(const char* pathname){
   if(!pathname || connection_socket == 0){
       errno = EINVAL;
@@ -497,6 +522,8 @@ int lockFile(const char* pathname){
   return 0;
 }
 
+//Funzione che va a sbloccare il file pathname
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int unlockFile(const char* pathname){
   if(!pathname || connection_socket == 0){
       errno = EINVAL;
@@ -535,6 +562,8 @@ int unlockFile(const char* pathname){
   return 0;
 }
 
+//Funzione che va a rimuovere dalla cache il file pathname
+//Ritorna 0 se va a buon fine, -1 in caso di errore
 int removeFile(const char* pathname){
     if(DEBUGAPI) printf("[INTERFACE] Entra in removeFile\n");
 
@@ -568,6 +597,7 @@ int removeFile(const char* pathname){
     return 0;
 }
 
+//Funzione di utility per l'abstime
 //0 se sono uguali, 1 se a>b, -1 se a<b
 int compare_time (struct timespec a, struct timespec b) {
     clock_gettime(CLOCK_REALTIME,&a);

@@ -1,5 +1,6 @@
 #include "../includes/parsingFile.h"
 
+//Funzione che controlla la validità dell'argomento
 long isNumberParser(const char* s) {
    char* e = NULL;
    long val = strtol(s, &e, 0);
@@ -7,6 +8,10 @@ long isNumberParser(const char* s) {
    return -1;
 }
 
+/**
+    Estrae da un file di testo, aperto passandogli una stringa contenente il suo nome, i valori di configurazione che il server andrà ad utilizzare durante l'esecuzione del programma.
+    In caso di esito negativo viene stampato un messaggio di errore, altrimenti si ritorna una struttura config con i valori inizializzati
+ */
 config* getConfig(const char* string){
     FILE *file;
 

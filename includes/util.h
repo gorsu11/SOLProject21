@@ -30,7 +30,7 @@
 //-------------- DEFINE UTILIZZATI ---------------//
 #define LEN 1000
 #define LENSOCK 1024
-#define UNIX_PATH_MAX 104 /* man 7 unix */
+#define UNIX_PATH_MAX 108 /* man 7 unix */
 
 #define O_CREATE 1
 #define O_LOCK 2
