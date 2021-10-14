@@ -197,6 +197,18 @@ int main(int argc, char *argv[]) {
          }
     }
 
+    if(containCMD(&lis, "D", &arg) == 1){
+        dirname_client = Darg;
+        //printf("DIRECTORY CLIENT %s, %s\n", dirname_client, Darg);
+
+        if(checkw == 0 && checkW == 0){
+            if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : negativo\n",Darg);
+        }
+        else{
+            if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : positivo\n",Darg);
+        }
+    }
+
     if(DEBUGCLIENT) printList(lis);
 
     node* curr = lis;
@@ -549,18 +561,6 @@ int main(int argc, char *argv[]) {
             else{
                 checkRead = 1;
                 if (flags == 1) printf("Operazione : -d (salva file) Directory : %s Esito : positivo\n",darg);
-            }
-        }
-
-        if(strcmp(curr->cmd, "D") == 0){
-            char *save8 = NULL;
-            Darg = strtok_r(curr->arg, ",", &save8);
-
-            if(checkw == 0 && checkW == 0){
-                if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : negativo\n",Darg);
-            }
-            else{
-                if (flags == 1) printf("Operazione : -D (scrivi file rimossi) Directory : %s Esito : positivo\n",Darg);
             }
         }
 

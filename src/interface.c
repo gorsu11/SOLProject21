@@ -91,6 +91,58 @@ int openFile(const char* pathname, int flags){
 
     SYSCALL_EXIT("writen", notused, writen(sockfd, buffer, LEN), "writen", "");
 
+    if(DEBUGAPI) printf("[INTERFACE] Scritta alla socket %s\n", buffer);
+
+    if(flags == 1 || flags == 2 || flags == 3){
+        if(DEBUGAPI) printf("Entro nel caso di scrittura con il flag %d\n", flags);
+        char* file_path = malloc(LEN*sizeof(char));
+        SYSCALL_EXIT("readn", notused, readn(sockfd, file_path, LEN), "readn", "");
+        //if(!DEBUGAPI) printf("[INTERFACE] Ricevuto %s da rimuovere\n", boh);
+        if(strcmp(file_path, "0") != 0){
+            char* size_t = malloc(LEN*sizeof(char));
+            //printf("HO RICEVUTO UN FILE DA RIMUOVERE\n");
+            SYSCALL_EXIT("readn", notused, readn(sockfd, size_t, LEN), "readn", "");
+            char* t = strtok(size_t, ",");
+            int size_file;
+
+            if(DEBUGAPI) printf("[INTERFACE] Il valore di t è %s\n", t);
+            if(strcmp(t, "-1") == 0){
+                t = strtok(NULL, ",");
+                errno = atoi(t);
+                return -1;
+            }
+            else{
+                if(DEBUGAPI) printf("[INTERFACE] Entra nell'else\n");
+                size_file = atoi(t);
+                *size_t = size_file;
+            }
+            if(DEBUGAPI) printf("[INTERFACE] Ricevuto %d da rimuovere\n", size_file);
+            char* buf;
+            CHECKNULL(buf, malloc((size_file+1)*sizeof(char)), "malloc buf");
+            SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
+
+            if(DEBUGAPI) printf("[INTERFACE] Ricevuto %s da rimuovere\n", buf);
+
+            if(dirname_client != NULL){
+                mkdir_p(dirname_client);
+                char sp[PATH_MAX];
+                memset(sp, 0, PATH_MAX);
+                char* file_name = basename(file_path);
+                sprintf(sp,"%s/%s",dirname_client,file_name);
+
+                //printf("Abbiamo: %s\t%s\n", file_name, sp);
+                FILE* of;
+                of = fopen(sp,"w");
+                if (of==NULL) {
+                    printf("Errore aprendo il file\n");
+                } else {
+                    fprintf(of,"%s",buf);
+                    fclose(of);
+                }
+            }
+        }
+    }
+
     SYSCALL_EXIT("readn", notused, readn(sockfd, response, LEN), "readn", "");
 
     if(DEBUGAPI) printf("[INTERFACE] Ricevuto %s da openFile\n", response);
@@ -323,10 +375,6 @@ int writeFile(const char* pathname, const char* dirname){
         return -1;
     }
 
-    if(dirname == NULL){
-        CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
-    }
-
     char buffer[LEN];
     memset(buffer, 0, LEN);
     sprintf(buffer, "writeFile,%s", pathname);
@@ -386,12 +434,76 @@ int writeFile(const char* pathname, const char* dirname){
         memset(conf1, 0, LEN);
         SYSCALL_EXIT("readn", notused, readn(sockfd, conf1, LEN), "readn", "");
 
-        //INVIO LA DIRECTORY
-        char tmp1[LEN];
-        memset(tmp1, 0, LEN);
-        sprintf(tmp1, "%s", dirname);
-        SYSCALL_EXIT("writen", notused, writen(sockfd, tmp1, LEN), "writen", "");
+        //**********
+        char* file_path = malloc(LEN*sizeof(char));
+        while(1){
+            SYSCALL_EXIT("readn", notused, readn(sockfd, file_path, LEN), "readn", "");
 
+            //printf("%s\n", file_path);
+
+            char* t3 = strtok(file_path, ",");
+            int ritorno1 = atoi(t3);
+            //printf("%d\n", ritorno1);
+
+            if(ritorno1 == 0){
+                //printf("Ho ricevuto nothing 2\n");
+                break;
+            }
+
+            else if(ritorno1 == -1){
+                t3 = strtok(NULL,",");
+                errno = atoi(t3);
+                return -1;
+            }
+
+            else{
+                char* path = strtok(NULL, ",");
+                if(DEBUGAPI) printf("[INTERFACE] Ricevuto il path %s\n", path);
+                char* size_t = malloc(LEN*sizeof(char));
+                SYSCALL_EXIT("readn", notused, readn(sockfd, size_t, LEN), "readn", "");
+                char* t = strtok(size_t, ",");
+                int size_file;
+
+                if(DEBUGAPI) printf("[INTERFACE] Il valore di t è %s\n", t);
+                if(strcmp(t, "-1") == 0){
+                    t = strtok(NULL, ",");
+                    errno = atoi(t);
+                    return -1;
+                }
+                else{
+                    if(DEBUGAPI) printf("[INTERFACE] Entra nell'else\n");
+                    size_file = atoi(t);
+                    *size_t = size_file;
+                }
+                if(DEBUGAPI) printf("[INTERFACE] Ricevuto %d da rimuovere\n", size_file);
+                SYSCALL_EXIT("writen", notused, writen(sockfd, "0", LEN), "writen", "");
+
+                char* buf;
+                CHECKNULL(buf, malloc((size_file+1)*sizeof(char)), "malloc buf");
+                SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
+                SYSCALL_EXIT("writen", notused, writen(sockfd, "0", LEN), "writen", "");
+
+
+                if(dirname_client != NULL){
+                    mkdir_p(dirname_client);
+                    char sp[PATH_MAX];
+                    memset(sp, 0, PATH_MAX);
+                    char* file_name = basename(path);
+                    sprintf(sp,"%s/%s",dirname_client,file_name);
+
+                    if(DEBUGAPI) printf("%s\n", sp);
+
+                    FILE* of;
+                    of = fopen(sp,"w");
+                    if (of==NULL) {
+                        printf("Errore aprendo il file\n");
+                    } else {
+                        fprintf(of,"%s",buf);
+                        fclose(of);
+                    }
+                }
+            }
+        }
 
         //RISPOSTA SERVER
         char result[LEN];
@@ -426,7 +538,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     char buffer[LEN];
     //memset(buffer, 0, DIM_MSG);
     sprintf(buffer, "appendToFile,%s", pathname);
-    
+
     if(dirname == NULL){
         CHECKNULL(dirname, malloc(LEN*sizeof(char)), "malloc dirname");
     }
@@ -460,11 +572,77 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
     memset(conf1, 0, LEN);
     SYSCALL_EXIT("readn", notused, readn(sockfd, conf1, LEN), "readn", "");
 
-    //INVIO LA DIRECTORY
-    char tmp1[LEN];
-    memset(tmp1, 0, LEN);
-    sprintf(tmp1, "%s", dirname);
-    SYSCALL_EXIT("writen", notused, writen(sockfd, tmp1, LEN), "writen", "");
+    //**********
+    while(1){
+        char* file_path = malloc(LEN*sizeof(char));
+        SYSCALL_EXIT("readn", notused, readn(sockfd, file_path, LEN), "readn", "");
+
+        //printf("%s\n", file_path);
+
+        char* t3 = strtok(file_path, ",");
+        int ritorno1 = atoi(t3);
+        //printf("%d\n", ritorno1);
+
+        if(ritorno1 == 0){
+            //printf("Ho ricevuto nothing 2\n");
+            break;
+        }
+
+        else if(ritorno1 == -1){
+            t3 = strtok(NULL,",");
+            errno = atoi(t3);
+            return -1;
+        }
+
+        else{
+            char* path = strtok(NULL, ",");
+            if(DEBUGAPI) printf("[INTERFACE] Ricevuto il path %s\n", path);
+            char* size_t = malloc(LEN*sizeof(char));
+            SYSCALL_EXIT("readn", notused, readn(sockfd, size_t, LEN), "readn", "");
+            char* t = strtok(size_t, ",");
+            int size_file;
+
+            if(DEBUGAPI) printf("[INTERFACE] Il valore di t è %s\n", t);
+            if(strcmp(t, "-1") == 0){
+                t = strtok(NULL, ",");
+                errno = atoi(t);
+                return -1;
+            }
+            else{
+                if(DEBUGAPI) printf("[INTERFACE] Entra nell'else\n");
+                size_file = atoi(t);
+                *size_t = size_file;
+            }
+            if(DEBUGAPI) printf("[INTERFACE] Ricevuto %d da rimuovere\n", size_file);
+            SYSCALL_EXIT("writen", notused, writen(sockfd, "0", LEN), "writen", "");
+
+            char* buf;
+            CHECKNULL(buf, malloc((size_file+1)*sizeof(char)), "malloc buf");
+            SYSCALL_EXIT("readn", notused, readn(sockfd, buf, size_file), "readn", "");
+            SYSCALL_EXIT("writen", notused, writen(sockfd, "0", LEN), "writen", "");
+
+
+            if(dirname_client != NULL){
+                mkdir_p(dirname_client);
+                char sp[PATH_MAX];
+                memset(sp, 0, PATH_MAX);
+                char* file_name = basename(path);
+                sprintf(sp,"%s/%s",dirname_client,file_name);
+
+                if(!DEBUGAPI) printf("%s\n", sp);
+
+                FILE* of;
+                of = fopen(sp,"w");
+                if (of==NULL) {
+                    printf("Errore aprendo il file\n");
+                } else {
+                    fprintf(of,"%s",buf);
+                    fclose(of);
+                }
+            }
+        }
+    }
+
 
     //RISPOSTA SERVER
     char result[LEN];

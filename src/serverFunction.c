@@ -183,39 +183,3 @@ void freeCache (file* cache) {
     }
     cache = NULL;
 }
-
-int mkdir_p(const char *path) {
-    if(DEBUGSERVER) printf("[SERVER] ******************************************************************\n");
-    if(DEBUGSERVER) printf("[SERVER] Entra in mkdir_p con path %s\n", path);
-    const size_t len = strlen(path);
-    char _path[1024];
-    char *p;
-
-    errno = 0;
-
-    if (len > sizeof(_path)-1) {
-        errno = ENAMETOOLONG;
-        return -1;
-    }
-    strcpy(_path, path);
-
-    for (p = _path + 1; *p; p++) {
-        if (*p == '/') {
-            *p = '\0';
-
-            if (mkdir(_path, S_IRWXU) != 0) {
-                if (errno != EEXIST)
-                    return -1;
-            }
-
-            *p = '/';
-        }
-    }
-
-    if (mkdir(_path, S_IRWXU) != 0) {
-        if (errno != EEXIST)
-            return -1;
-    }
-    if(DEBUGSERVER) printf("[SERVER] ******************************************************************\n");
-    return 0;
-}
