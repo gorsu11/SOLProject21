@@ -44,11 +44,11 @@ int removeNode (node ** list);
 int updatemax(fd_set set, int fdmax);
 
 
-int aggiungiFile(char* path, int flag, int cfd, char* dirname);
+int aggiungiFile(char* path, int flag, int cfd);
 int rimuoviCliente(char* path, int cfd);
 int rimuoviFile(char* path, int cfd);
-int inserisciDati(char* path, char* data, int size, int cfd, char* dirname);
-int appendDati(char* path, char* data, int size, int cfd,  char* dirname);
+int inserisciDati(char* path, char* data, int size, int cfd);
+int appendDati(char* path, char* data, int size, int cfd);
 int bloccaFile(char* path, int cfd);
 int sbloccaFile(char* path, int cfd);
 char* prendiFile (char* path, int cfd);
@@ -57,8 +57,6 @@ void printFile (file* cache);
 void freeList(node** head);
 int fileOpen(node* list, int cfd);
 
-int resizeCache(int dim, char* dirname);
-int mkdir_p(const char *path);
 void printClient (node * list);
 
 void execute (char * request, int cfd,int pfd);
@@ -75,6 +73,8 @@ void freeCache (file* cache);
 
 void rwLock_start(lockFile* file);
 void rwLock_end(lockFile* file);
+
+file* lastFile(file** temp);
 //----------------------------------------------------------------//
 
 #endif /* serverFunction_h */

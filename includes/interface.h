@@ -9,6 +9,7 @@ int connection_socket;
 int notused;
 char response[LEN];
 char socket_name[LENSOCK];
+char *dirname_client;
 //-------------------------------------------------------------//
 
 //int openConnection(const char* sockname, int msec, const struct timespec abstime);
