@@ -105,5 +105,5 @@ echo -e "Massimo numero di connessioni contemporanee: $maxCon\n"
 max_files=$(grep -Eo "Numero di file massimo: [0-9]+" $1 | grep -Eo "[0-9]+")
 echo "Numero massimo di file presenti: $max_files"
 
-max_bytes=$(echo "scale=6; $(grep -Eo "Dimensione massima di bytes: [0-9]+" $1 | grep -Eo "[0-9]+") /1048576"| bc -l)
+max_bytes=$(echo "scale=6; $(grep -Eo "Dimensione massima di bytes: [0-9]+" $1 | grep -Eo "[0-9]+")"| bc -l)
 echo -e "Dimensione massima della cache: $max_bytes Bytes\n"
