@@ -26,15 +26,13 @@ static void gestore_term (int signum);
 //STRUTTURA DATI PER SALVARE I FILE
 file* cache = NULL;
 
-//DICHIARAZIONE GLOBALE PER SALVARE LA DIRECTORY
-char directory_name[LEN];
-
 //STRUTTURA DATI CHE SALVA IL FILE DI CONFIGURAZIONE
 config* configuration;
 
 //CODA DI COMUNICAZIONE MANAGER --> WORKERS / RISORSA CONDIVISA / CODA FIFO
 node * coda = NULL;
 
+//DICHIARAZIONE DEL FILE DI LOG
 FILE* logFile;
 
 void cleanup() {
@@ -352,6 +350,8 @@ void execute (char * request, int cfd,int pfd){
             //Controllo il flag per vedere se vado ad aggiungere un file oppure solo a leggerlo
             if(flag == 1 || flag == 2 || flag == 3){
                 if(num_files+1 > configuration->num_files){
+                    //se il numero di file eccede invio al client il file che andro ad eliminare
+                    writeLogFd(logFile, cfd);
                     if(DEBUGSERVER) printf("[SERVER] Il numero eccede\n");
                     //file* temp = *lis;                          //nel caso in cui ci sia il numero massimo di file nella cache
                     if(DEBUGSERVER) printf("[SERVER] Entro nel caso di rimozione di un elemento\n");
@@ -368,7 +368,6 @@ void execute (char * request, int cfd,int pfd){
 
                     SYSCALL_WRITE(writen(cfd, temp->data, strlen(temp->data)), "writen path removed 2");
 
-                    //TODO: in questo punto dovrei mandare all'interfaccia il path e il testo del file scelto
                     if(DEBUGSERVER) printf("[SERVER] Rimuove %s\n", temp->path);
                     CONTROLLA(fprintf(logFile, "Operazione: %s\n", "replace"));
                     CONTROLLA(fprintf(logFile, "Pathname: %s\n", temp->path));
@@ -380,6 +379,8 @@ void execute (char * request, int cfd,int pfd){
                     free(temp);
                     num_files --;
                     replace ++;
+
+                    valutaEsito(logFile, 1, "Replace");
                 }
                 else{
                     SYSCALL_WRITE(writen(cfd, "0", LEN), "writen path removed 2");
@@ -492,11 +493,13 @@ void execute (char * request, int cfd,int pfd){
 
             if(size > configuration->sizeBuff){
                 if(DEBUGSERVER) printf("Entra nel caso del file troppo grande\n");
-                sprintf(result, "-1,%d", EFBIG);
+                sprintf(result, "-4,%d", EFBIG);
                 SYSCALL_WRITE(writen(cfd, result, LEN), "writeFile: socket write result");
             }
             else{
+                //Finche la dimensione non mi consente di aggiungere il file elimino in ordine FIFO i file presenti
                 while(dim_byte + size > configuration->sizeBuff){
+                    writeLogFd(logFile, cfd);
                     if(DEBUGSERVER) printf("Entra nel secondo caso del file troppo grande\n");
                     file* tmp = lastFile(lis);
 
@@ -531,6 +534,8 @@ void execute (char * request, int cfd,int pfd){
                     freeList(&(tmp->coda_lock));
                     free(tmp);
                     replace++;
+
+                    valutaEsito(logFile, 1, "Replace");
                 }
 
                 if(DEBUGSERVER) printf("Entro nel caso in cui va bene\n");
@@ -544,10 +549,7 @@ void execute (char * request, int cfd,int pfd){
                     sprintf(result, "-2,%d", EPERM);
                 }
                 else if(res == -3){
-                    sprintf(result, "-3,%d", EFBIG);
-                }
-                else if(res == -4){
-                    sprintf(result, "-4,%d", ENOLCK);
+                    sprintf(result, "-3,%d", ENOLCK);
                 }
                 else{
                     sprintf(result, "0");
@@ -599,11 +601,13 @@ void execute (char * request, int cfd,int pfd){
 
             if(size > configuration->sizeBuff){
                 if(DEBUGSERVER) printf("Entra nel caso del file troppo grande\n");
-                sprintf(result, "-1,%d", EFBIG);
+                sprintf(result, "-4,%d", EFBIG);
                 SYSCALL_WRITE(writen(cfd, result, LEN), "writeFile: socket write result");
             }
             else{
                 while(dim_byte + size > configuration->sizeBuff){
+                    writeLogFd(logFile, cfd);
+
                     if(DEBUGSERVER) printf("Entra nel secondo caso del file troppo grande\n");
                     file* tmp = lastFile(lis);
 
@@ -642,7 +646,7 @@ void execute (char * request, int cfd,int pfd){
                     free(tmp);
                     replace++;
 
-                    //SYSCALL_WRITE(writen(cfd, "0,0", LEN), "writen path removed 2");
+                    valutaEsito(logFile, 1, "Replace");
 
                 }
                 if(DEBUGSERVER) printf("Entro nel caso in cui va bene\n");
@@ -658,10 +662,7 @@ void execute (char * request, int cfd,int pfd){
                     sprintf(result, "-2,%d", EPERM);
                 }
                 else if(res == -3){
-                    sprintf(result, "-3,%d", EFBIG);
-                }
-                else if(res == -4){
-                    sprintf(result, "-4,%d", ENOLCK);
+                    sprintf(result, "-3,%d", ENOLCK);
                 }
                 else{
                     sprintf(result, "0");
@@ -804,13 +805,13 @@ void execute (char * request, int cfd,int pfd){
             int res;
 
             if((res = bloccaFile(path, cfd)) == -1){
-                fprintf(stdout, "Elemento aggiunto alla lista\n");
+                sprintf(response, "-1,%d", EINVAL);
             }
             else if(res == -2){
-                fprintf(stderr, "Elemento gia presente nella lista\n");
+                sprintf(response, "-2,%d", ENOENT);
             }
             else if(res == -3){
-                sprintf(response, "-3,%d", ENOENT);
+                fprintf(stdout, "Elemento aggiunto alla coda\n");
             }
             else{
                 sprintf(response, "0");
@@ -828,14 +829,15 @@ void execute (char * request, int cfd,int pfd){
             char path[PATH_MAX];
             strcpy(path, token);
 
-            if(DEBUGSERVER) printf("[SERVER] Dopo la strcpy di unlockFile ho path:%s e token:%s\n", path, token);
-
             int res;
             if((res = sbloccaFile(path, cfd)) == -1){
-                fprintf(stdout, "Lockato il file con l'elemento in testa\n");
+                sprintf(response, "-1,%d", EINVAL);
             }
             else if(res == -2){
                 sprintf(response, "-2,%d", ENOENT);
+            }
+            else if(res == -3){
+                sprintf(response, "-3,%d", ENOLCK);
             }
             else{
                 sprintf(response, "0");
@@ -986,14 +988,10 @@ int aggiungiFile(char* path, int flag, int cfd){
                 curr->data = NULL;
                 curr->client_write = cfd;
                 curr->client_open = NULL;
-                pthread_mutex_init(&(curr->concorrency.mutex_file), NULL);
-                pthread_cond_init(&(curr->concorrency.cond_file), NULL);
 
                 curr->lock_flag = -1;
                 curr->coda_lock = NULL;
                 curr->testa_lock = NULL;
-                curr->concorrency.waiting = 0;
-                curr->concorrency.writer_active = false;
 
                 CONTROLLA(fprintf(logFile, "Operazione: %s\n", "creaFile"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
@@ -1004,12 +1002,8 @@ int aggiungiFile(char* path, int flag, int cfd){
 
             if(flag == O_LOCK || flag == O_CREATEANDLOCK){
                 curr->lock_flag = cfd;
-                pthread_mutex_init(&(curr->concorrency.mutex_file), NULL);
-                pthread_cond_init(&(curr->concorrency.cond_file), NULL);
                 curr->coda_lock = NULL;
                 curr->testa_lock = NULL;
-                curr->concorrency.waiting = 0;
-                curr->concorrency.writer_active = false;
 
                 CONTROLLA(fprintf(logFile, "Operazione: %s\n", "openlockFile"));
                 CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
@@ -1034,7 +1028,6 @@ int aggiungiFile(char* path, int flag, int cfd){
     }
 
     else if(flag == 0 && trovato == 1){
-
         if(DEBUGSERVER) printf("[SERVER] Entro qui perche flag è %d e trovato è %d\n", flag, trovato);
         //apro il file per cfd, controllo se nella lista non è gia presente cfd e nel caso lo inserisco
         if(fileOpen(curr->client_open, cfd) == 0){
@@ -1254,7 +1247,7 @@ int inserisciDati(char* path, char* data, int size, int cfd){
     while(curr != NULL){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
-                result = -4;
+                result = -3;
                 break;
             }
 
@@ -1316,7 +1309,7 @@ int appendDati(char* path, char* data, int size, int cfd){
     while(curr != NULL){
         if(strcmp(path, curr->path) == 0){
             if(curr->lock_flag != -1 && curr->lock_flag != cfd){
-                result = -4;
+                result = -3;
                 break;
             }
             trovato = 1;
@@ -1425,7 +1418,7 @@ char* prendiFile (char* path, int cfd){
 
 /*
  Blocca il file con pathname path da parte del client cfd
- Ritorna 0 se ha successo, -1 se l'argomento passato è errato, -2 se il file è satto lockato da un altro client e  -3 se il file non esiste
+ Ritorna 0 se ha successo, -1 se l'argomento passato non è valido, -2 se il path non è presente, -3 se aggiungo il client alla coda per la lock
  */
 int bloccaFile(char* path, int cfd){
 
@@ -1438,11 +1431,9 @@ int bloccaFile(char* path, int cfd){
     if(DEBUGSERVER) printf("[SERVER] Entra in bloccaFile\n");
 
     LOCK(&lock_cache);
-
     writeLogFd(logFile, cfd);
 
     int result = 0;
-
     int trovato = 0;
     file* curr = cache;
 
@@ -1459,30 +1450,21 @@ int bloccaFile(char* path, int cfd){
 
     if(DEBUGSERVER) printf("[SERVER] Trovato è %d\n", trovato);
     if(trovato == 1){
-        if(DEBUGSERVER) printf("[SERVER] Entra in trovato == 1\n");
-        LOCK(&(curr->concorrency.mutex_file));
-        UNLOCK(&lock_cache);
-
-        rwLock_start(&(curr->concorrency));
-        UNLOCK(&(curr->concorrency.mutex_file));
-
-        result = setLock(curr, cfd);
-
-        LOCK(&(curr->concorrency.mutex_file));
-
-        rwLock_end(&(curr->concorrency));
-
-        UNLOCK(&(curr->concorrency.mutex_file));
-
+        //se è libero cambio il valore del flag
+        if (curr->lock_flag == -1){
+            curr->lock_flag = cfd;
+        }
+        //se non è lo stesso client che ha la lock guardo se è gia in coda per acquisirla, altrimenti l'aggiungo
+        else if(curr->lock_flag != cfd && find(&(curr->testa_lock), cfd) == 0){
+            push(&(curr->testa_lock), &(curr->coda_lock), cfd);
+            result = -3;
+        }
         CONTROLLA(fprintf(logFile, "Operazione: %s\n", "bloccaFile"));
         CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));
-
-        if(DEBUGSERVER) printf("[SERVER] File %s ha avuto la lock da %d (%d)\n", curr->path, curr->lock_flag, cfd);
-
     }
     else{
         //caso in cui path non è presente
-        result = -3;
+        result = -2;
     }
     UNLOCK(&lock_cache);
     if(DEBUGSERVER) printf("[SERVER] Il risultato di bloccaFile è %d\n", result);
@@ -1493,7 +1475,7 @@ int bloccaFile(char* path, int cfd){
 
 /*
  Sblocca il file con pathname path da parte del client cfd
- Ritorna 0 se ha successo, -1 se l'argomento passato è errato e -2 se il file non esiste
+ Ritorna 0 se ha successo, -1 se l'argomento passato è errato, -2 se il file non esiste, -3 se viene chiamata la unlock da un client diverso da quello che possiede la lock
  */
 int sbloccaFile(char* path, int cfd){
 
@@ -1527,19 +1509,18 @@ int sbloccaFile(char* path, int cfd){
     if(DEBUGSERVER) printf("Trovato è %d\n", trovato);
 
     if(trovato == 1){
-        LOCK(&(curr->concorrency.mutex_file));
-        UNLOCK(&lock_cache);
-
-        rwLock_start(&(curr->concorrency));
-
-        UNLOCK(&(curr->concorrency.mutex_file));
-
-        result = setUnlock(curr, cfd);
-        LOCK(&(curr->concorrency.mutex_file));
-
-        rwLock_end(&(curr->concorrency));
-
-        UNLOCK(&(curr->concorrency.mutex_file));
+        if(curr->lock_flag == cfd){
+            if(curr->testa_lock == NULL){
+                curr->lock_flag = -1;
+            }
+            else{
+                curr->lock_flag = pop(&(curr->testa_lock), &(curr->coda_lock));
+            }
+        }
+        else{
+            //curr->lock_flag != cfd
+            result = -3;
+        }
 
         CONTROLLA(fprintf(logFile, "Operazione: %s\n", "sbloccaFile"));
         CONTROLLA(fprintf(logFile, "Pathname: %s\n", curr->path));

@@ -12,15 +12,6 @@ typedef struct node {
 } node;
 //----------------------------------------------//
 
-//--------------- GESTIONE CONCORRENZA ----------------//
-typedef struct lockFile{
-    pthread_mutex_t mutex_file;
-    pthread_cond_t cond_file;
-    unsigned int waiting;
-    bool writer_active;
-} lockFile;
-//-----------------------------------------------------//
-
 //--------------- GESTIONE FILE ----------------//
 typedef struct file {
     char path[PATH_MAX];            //nome
@@ -30,7 +21,6 @@ typedef struct file {
     int lock_flag;                  //variabile che mi tiene conto se un file è in lock da parte di un client
     node* testa_lock;               //lista che mi tiene conto dei client in testa per la lock
     node* coda_lock;                //lista che mi tiene conto dei client in coda per la lock
-    lockFile concorrency;           //per la gestione della concorrenza
 
     int client_write;               //FILE DESCRIPTOR DEL CLIENT CHE HA ESEGUITO COME ULTIMA OPERAZIONE UNA openFile con flag O_CREATE
     struct file * next;
@@ -39,11 +29,12 @@ typedef struct file {
 
 
 //-------------------- FUNZIONI SOLO DICHIARATE --------------------//
+//Funzioni per gestire le richieste
 void insertNode (node ** list, int data);
 int removeNode (node ** list);
 int updatemax(fd_set set, int fdmax);
 
-
+//Funzioni utilizzate dal server per gestire le richieste
 int aggiungiFile(char* path, int flag, int cfd);
 int rimuoviCliente(char* path, int cfd);
 int rimuoviFile(char* path, int cfd);
@@ -52,29 +43,26 @@ int appendDati(char* path, char* data, int size, int cfd);
 int bloccaFile(char* path, int cfd);
 int sbloccaFile(char* path, int cfd);
 char* prendiFile (char* path, int cfd);
+file* lastFile(file** temp);
 
+//Funzioni di stampa
 void printFile (file* cache);
-void freeList(node** head);
-int fileOpen(node* list, int cfd);
-
 void printClient (node * list);
 
-void execute (char * request, int cfd,int pfd);
+//Funzioni per liberare la memoria
+void freeList(node** head);
+void freeCache (file* cache);
+int fileOpen(node* list, int cfd);
+
 void* Workers(void *argument);
+void execute (char * request, int cfd,int pfd);
 
-int setLock(file* curr, int cfd);
-int setUnlock(file* curr, int cfd);
-
+//Funzioni per gestire la lock e la unlock di un file
 void push(node **testa, node **coda, int data);
 int pop(node **testa, node **coda);
 int find(node** testa, int data);
 int free_L(node** testa, node** coda);
-void freeCache (file* cache);
 
-void rwLock_start(lockFile* file);
-void rwLock_end(lockFile* file);
-
-file* lastFile(file** temp);
 //----------------------------------------------------------------//
 
 #endif /* serverFunction_h */

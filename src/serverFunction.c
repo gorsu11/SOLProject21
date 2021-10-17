@@ -1,5 +1,7 @@
 #include "../includes/serverFunction.h"
 
+//-------------------- FUNZIONI DI UTILITY PER LA LOCK E UNLOCK --------------------//
+
 //Funzione che aggiunge elemento in coda alle due liste
 //Ritorna errore se l'elemento da inserire è NULL
 void push(node **testa, node **coda, int data){
@@ -57,62 +59,7 @@ int find(node** testa, int data){
     }
     return 0;
 }
-
-
-//Funzione per gestire gli accessi concorrenti ad un file
-void rwLock_start(lockFile* file){
-    file->waiting ++;
-    if(DEBUGSERVER) printf("[SERVER] I clienti in attesa sono %d e writer_active è %d\n", file->waiting, file->writer_active);
-    while (file->waiting > 1 || file->writer_active == true) {
-        if(DEBUGSERVER) printf("[SERVER] Entra in WAIT\n");
-        WAIT(&(file->cond_file), &(file->mutex_file));
-    }
-    file->writer_active = true;
-}
-
-
-void rwLock_end(lockFile* file){
-    //printf("%d\n", file->waiting);
-    file->waiting --;
-    file->writer_active = false;
-    //printf("%d\n", file->waiting);
-    BCAST(&(file->cond_file));
-}
-
-
-//Funzione che imposta il flag di lock ad un file
-//Ritorna 0 se va a buon fine, -1 se l'elemento non è in coda, -2 se l'elemento è gia presente nella coda
-int setLock(file* curr, int cfd){
-    if (curr->lock_flag == -1){
-        curr->lock_flag = cfd;
-        return 0;
-    }
-    else if(curr->lock_flag != cfd){
-        if(find(&(curr->testa_lock), cfd) == 0){
-            push(&(curr->testa_lock), &(curr->coda_lock), cfd);
-            return -1;
-        }
-        else{
-            //se l'elemento è gia in coda
-            return -2;
-        }
-    }
-    return 0;
-}
-
-//Funzione che resetta il flag di lock di un file
-//Ritorna 0 se va a buon fine, -1 altrimenti
-int setUnlock(file* curr, int cfd){
-    if(curr->testa_lock == NULL){
-        curr->lock_flag = -1;
-        return 0;
-    }
-    else{
-        curr->lock_flag = pop(&(curr->testa_lock), &(curr->coda_lock));
-        writen((long)curr->coda_lock, 0, sizeof(int));
-        return -1;
-    }
-}
+//--------------------------------------------------------------------------//
 
 //-------------------- FUNZIONI DI UTILITY PER LA CACHE --------------------//
 
@@ -183,3 +130,4 @@ void freeCache (file* cache) {
     }
     cache = NULL;
 }
+//--------------------------------------------------------------------------//

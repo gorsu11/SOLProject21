@@ -58,7 +58,6 @@ int closeConnection(const char* sockname){
 
     if(DEBUGAPI) fprintf(stdout, "[INTERFACE] Richiesta chiusura\n");
 
-
     if((close(sockfd)) == -1){
         return -1;
     }
@@ -93,15 +92,16 @@ int openFile(const char* pathname, int flags){
 
     if(DEBUGAPI) printf("[INTERFACE] Scritta alla socket %s\n", buffer);
 
+    //Guardo se vado ad aggiungere il file
     if(flags == 1 || flags == 2 || flags == 3){
-        if(DEBUGAPI) printf("Entro nel caso di scrittura con il flag %d\n", flags);
+
         char* file_path = malloc(LEN*sizeof(char));
         SYSCALL_EXIT("readn", notused, readn(sockfd, file_path, LEN), "readn", "");
-        //if(!DEBUGAPI) printf("[INTERFACE] Ricevuto %s da rimuovere\n", boh);
+
         if(strcmp(file_path, "0") != 0){
             char* size_t = malloc(LEN*sizeof(char));
-            //printf("HO RICEVUTO UN FILE DA RIMUOVERE\n");
             SYSCALL_EXIT("readn", notused, readn(sockfd, size_t, LEN), "readn", "");
+
             char* t = strtok(size_t, ",");
             int size_file;
 
@@ -324,7 +324,7 @@ int readNFiles(int N, const char* dirname){
         SYSCALL_EXIT("readn", notused, readn(sockfd, fbuf, size_file), "readn", "");
 
         if(DEBUGAPI) printf("[INTERFACE] Ricevuto\n%s\n", fbuf);
-        char *t3 = strtok(fbuf,",");
+        char *t3 = strtok(fbuf, ",");
         int ritorno3;
         if((ritorno3 = atoi(t3)) != 0){
             t3 = strtok(NULL,",");
@@ -339,13 +339,13 @@ int readNFiles(int N, const char* dirname){
             char* file_name = basename(path);
             sprintf(sp,"%s/%s",dirname,file_name);
 
-            //TODO: usare i DEFINE per aprire il file
             FILE* of;
-            of = fopen(sp,"w");
-            if (of==NULL) {
+            of = fopen(sp, "w");
+            if (of == NULL) {
                 printf("Errore aprendo il file\n");
-            } else {
-                fprintf(of,"%s",fbuf);
+            }
+            else {
+                fprintf(of, "%s", fbuf);
                 fclose(of);
             }
         }
@@ -450,7 +450,7 @@ int writeFile(const char* pathname, const char* dirname){
                 break;
             }
 
-            else if(ritorno1 == -1){
+            else if(ritorno1 == -4){
                 t3 = strtok(NULL,",");
                 errno = atoi(t3);
                 return -1;
@@ -588,7 +588,7 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
             break;
         }
 
-        else if(ritorno1 == -1){
+        else if(ritorno1 == -4){
             t3 = strtok(NULL,",");
             errno = atoi(t3);
             return -1;
@@ -665,29 +665,29 @@ int appendToFile(const char* pathname, void* buf, size_t size, const char* dirna
 //Funzione che va a bloccare il file pathname da parte del cliente che lo richiede
 //Ritorna 0 se va a buon fine, -1 in caso di errore
 int lockFile(const char* pathname){
-  if(!pathname || connection_socket == 0){
-      errno = EINVAL;
-      return -1;
-  }
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
 
-  if(DEBUGAPI) printf("[INTERFACE] Inizio lockFile di %s\n", pathname);
+    if(DEBUGAPI) printf("[INTERFACE] Inizio lockFile di %s\n", pathname);
 
-  //INVIA IL COMANDO AL SERVER
-  char buf[LEN];
-  memset(buf, 0, LEN);
-  sprintf(buf, "lockFile,%s", pathname);
-  SYSCALL_EXIT("writen", notused, writen(sockfd, buf, LEN), "writen", "")
+    //INVIA IL COMANDO AL SERVER
+    char buf[LEN];
+    memset(buf, 0, LEN);
+    sprintf(buf, "lockFile,%s", pathname);
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buf, LEN), "writen", "")
 
-  if(DEBUGAPI) printf("[INTERFACE] Inviato al server il buffer %s\n", buf);
+    if(DEBUGAPI) printf("[INTERFACE] Inviato al server il buffer %s\n", buf);
 
-  //RICEVE IL RESPONSO DAL SERVER
-  char buf1[LEN];
-  memset(buf1, 0, LEN);
-  SYSCALL_EXIT("readn", notused, readn(sockfd, buf1, LEN), "readn", "");
+    //RICEVE IL RESPONSO DAL SERVER
+    char buf1[LEN];
+    memset(buf1, 0, LEN);
+    SYSCALL_EXIT("readn", notused, readn(sockfd, buf1, LEN), "readn", "");
 
-  if(DEBUGAPI) printf("[INTERFACE] Riceve il responso %s\n", buf1);
+    if(DEBUGAPI) printf("[INTERFACE] Riceve il responso %s\n", buf1);
 
-  char* t = strtok(buf1, ",");
+    char* t = strtok(buf1, ",");
 
     int ritorno;
     if((ritorno = atoi(t)) != 0){
@@ -696,38 +696,38 @@ int lockFile(const char* pathname){
         return -1;
     }
 
-  if(DEBUGAPI) printf("[INTERFACE] lockFile avvenuta con successo\n");
-  return 0;
+    if(DEBUGAPI) printf("[INTERFACE] lockFile avvenuta con successo\n");
+    return 0;
 }
 
 //Funzione che va a sbloccare il file pathname
 //Ritorna 0 se va a buon fine, -1 in caso di errore
 int unlockFile(const char* pathname){
-  if(!pathname || connection_socket == 0){
-      errno = EINVAL;
-      return -1;
-  }
+    if(!pathname || connection_socket == 0){
+        errno = EINVAL;
+        return -1;
+    }
 
-  if(DEBUGAPI) printf("[INTERFACE] Inizio unlockFile di %s\n", pathname);
+    if(DEBUGAPI) printf("[INTERFACE] Inizio unlockFile di %s\n", pathname);
 
-  //INVIA IL COMANDO AL SERVER
-  char buf[LEN];
-  memset(buf, 0, LEN);
-  sprintf(buf, "unlockFile,%s", pathname);
-  SYSCALL_EXIT("writen", notused, writen(sockfd, buf, LEN), "writen", "")
+    //INVIA IL COMANDO AL SERVER
+    char buf[LEN];
+    memset(buf, 0, LEN);
+    sprintf(buf, "unlockFile,%s", pathname);
+    SYSCALL_EXIT("writen", notused, writen(sockfd, buf, LEN), "writen", "")
 
-  if(DEBUGAPI) printf("[INTERFACE] Inviato al server il path %s\n", pathname);
+    if(DEBUGAPI) printf("[INTERFACE] Inviato al server il path %s\n", pathname);
 
-  //RICEVE IL RESPONSO DAL SERVER
-  char buf1[LEN];
-  memset(buf1, 0, LEN);
-  SYSCALL_EXIT("readn", notused, readn(sockfd, buf1, LEN), "readn", "");
+    //RICEVE IL RESPONSO DAL SERVER
+    char buf1[LEN];
+    memset(buf1, 0, LEN);
+    SYSCALL_EXIT("readn", notused, readn(sockfd, buf1, LEN), "readn", "");
 
-  if(DEBUGAPI) printf("[INTERFACE] Riceve il responso %s\n", buf1);
+    if(DEBUGAPI) printf("[INTERFACE] Riceve il responso %s\n", buf1);
 
-  char* t = strtok(buf1, ",");
+    char* t = strtok(buf1, ",");
 
-  if(DEBUGAPI) printf("[INTERFACE] Viene inviato al client %s\n", t);
+    if(DEBUGAPI) printf("[INTERFACE] Viene inviato al client %s\n", t);
 
     int ritorno;
     if((ritorno = atoi(t)) != 0){
@@ -736,8 +736,8 @@ int unlockFile(const char* pathname){
         return -1;
     }
 
-  if(DEBUGAPI) printf("[INTERFACE] unlockFile avvenuta con successo\n");
-  return 0;
+    if(DEBUGAPI) printf("[INTERFACE] unlockFile avvenuta con successo\n");
+    return 0;
 }
 
 //Funzione che va a rimuovere dalla cache il file pathname
@@ -787,8 +787,8 @@ int compare_time (struct timespec a, struct timespec b) {
     else return -1;
 }
 
+//Funzione che crea la directory nel caso non sia presente
 int mkdir_p(const char *path) {
-
     const size_t len = strlen(path);
     char _path[1024];
     char *p;
